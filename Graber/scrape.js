@@ -18,43 +18,21 @@ exports.getScraper = function(){
 	
 	
 	var scraper={};
-	
-	scraper.pages={gzf:{},gycq:{}};
-	
+	 
 	scraper.start=function(){ 
 		scraper.run();
 	}
 	
 	scraper.loadHis=function(){
-		try{	
-			var meeObjStr = fs.readFileSync('meeObj.json', 'utf8')
-			scraper.meeObj=JSON.parse(meeObjStr);
-		}catch(err){
-			console.log('meeObj.json not existing'); 
-			scraper.meeObj={};
-			scraper.meeObj.loadedTitles=[];		
-		}	
 		
 		try{	
-			var cenewsObjStr = fs.readFileSync('cenewsObj.json', 'utf8')
-			scraper.cenewsObj=JSON.parse(cenewsObjStr);
+			var objStr = fs.readFileSync('loadedTitles.json', 'utf8');
+			scraper.loadedTitles=JSON.parse(objStr);
 		}catch(err){
-			console.log('cenewsObj.json not existing'); 
-			scraper.cenewsObj={};
-			scraper.cenewsObj.loadedTitles=[];	
-		}			
-		
-		try{	
-			var govObjStr = fs.readFileSync('govObj.json', 'utf8')
-			scraper.govObj=JSON.parse(govObjStr);
-		}catch(err){
-			console.log('govObj.json not existing'); 
-			scraper.govObj={};
-			scraper.govObj.loadedTitles=[];	
-		}			
-	
-
-		
+			console.log('history not existing'); 
+			scraper.loadedTitles={mee:[],gov:[],cenews:[]};	
+			
+		}	 
 	}
 	
 	scraper.run=function(){
@@ -65,7 +43,6 @@ exports.getScraper = function(){
 		scraper.startedRequestCount=0;
 		scraper.endedRequestCount=0;
  
- /*
 		var meePath='./data2/mee/';
 		try{		
 		 fs.statSync(meePath);
@@ -97,8 +74,6 @@ exports.getScraper = function(){
 		scraper.climb_cenews2('https://www.cenews.com.cn/news/');
 		
 		scraper.climb_cenews3('https://www.cenews.com.cn/news/index_1445_1.html');
-
-	*/
 	
 		var govPath='./data2/gov/';
 		try{
@@ -133,12 +108,12 @@ exports.getScraper = function(){
 				var href = $(elem).attr("href");
 				
 				var atitle = $(elem).text();				
-				if(scraper.meeObj.loadedTitles.indexOf(atitle)>-1){
+				if(scraper.loadedTitles.mee.indexOf(atitle)>-1){
 					console.log("已下载的mee文章:"+atitle);
 					return true;
 				}
 				
-				scraper.meeObj.loadedTitles.push(atitle);
+				scraper.loadedTitles.mee.push(atitle);
 				
 				scraper.startedRequestCount++;
 				//console.log(href);
@@ -165,12 +140,12 @@ exports.getScraper = function(){
 				var href = $content(elem).attr("href");
 				
 				var atitle = $content(elem).text();				
-				if(scraper.cenewsObj.loadedTitles.indexOf(atitle)>-1){
+				if(scraper.loadedTitles.cenews.indexOf(atitle)>-1){
 					console.log("已下载的cenews文章:"+atitle);
 					return true;
 				}
 				
-				scraper.cenewsObj.loadedTitles.push(atitle);
+				scraper.loadedTitles.cenews.push(atitle);
 				
 				scraper.startedRequestCount++;
 				
@@ -205,12 +180,12 @@ exports.getScraper = function(){
 				} 
 				
 				var atitle = $content(elem).text();				
-				if(scraper.cenewsObj.loadedTitles.indexOf(atitle)>-1){
+				if(scraper.loadedTitles.cenews.indexOf(atitle)>-1){
 					console.log("已下载的cenews文章:"+atitle);
 					return true;
 				}
 				
-				scraper.cenewsObj.loadedTitles.push(atitle);
+				scraper.loadedTitles.cenews.push(atitle);
 				
 				scraper.startedRequestCount++;				
 				
@@ -252,12 +227,12 @@ exports.getScraper = function(){
 				} 
 				
 				var atitle = $content(elem).text();				
-				if(scraper.cenewsObj.loadedTitles.indexOf(atitle)>-1){
+				if(scraper.loadedTitles.cenews.indexOf(atitle)>-1){
 					console.log("已下载的cenews文章:"+atitle);
 					return true;
 				}
 				
-				scraper.cenewsObj.loadedTitles.push(atitle);
+				scraper.loadedTitles.cenews.push(atitle);
 				
 				scraper.startedRequestCount++;				
 				
@@ -302,12 +277,12 @@ exports.getScraper = function(){
 				}
 				
 				var atitle = $content(elem).text();				
-				if(scraper.govObj.loadedTitles.indexOf(atitle)>-1){
+				if(scraper.loadedTitles.gov.indexOf(atitle)>-1){
 					console.log("已下载的gov文章:"+atitle);
 					return true;
 				}
 				
-				scraper.govObj.loadedTitles.push(atitle);
+				scraper.loadedTitles.gov.push(atitle);
 				
 				scraper.startedRequestCount++;				
 			        
@@ -426,8 +401,12 @@ exports.getScraper = function(){
 		
 		var str = "[标题]"+mtitle+"\r\n"; 
 		str+="[来源]"+mSrc.slice(3)+"\r\n";
-		str+="[栏目]\r\n";
-		str+="[地区]\r\n";	  
+		str+="[地区]\r\n";	
+		str+="[作者]\r\n";	
+		str+="[摘要]\r\n";	
+		str+="[关键字]\r\n"; 
+		str+="[栏目]\r\n";		
+		str+="[专有属性]\r\n";		
 		str+="[日期]"+mDate+"\r\n";
 		str+="[正文]\r\n"+pageC.trim()+"\r\n";		
 		
@@ -565,14 +544,8 @@ exports.getScraper = function(){
 		if(scraper.endedRequestCount==scraper.startedRequestCount){
 			console.log("all finished======================================");
 			
-			var meeObjStr = JSON.stringify(scraper.meeObj);
-			saveTxt("meeObj.json",meeObjStr);
-			
-			var cenewsObjStr = JSON.stringify(scraper.cenewsObj);
-			saveTxt("cenewsObj.json",cenewsObjStr);			
-			
-			var govObjStr = JSON.stringify(scraper.govObj);
-			saveTxt("govObj.json",govObjStr);				
+			var objStr = JSON.stringify(scraper.loadedTitles);
+			saveTxt("loadedTitles.json",objStr); 		
 		}
 		
 	}
