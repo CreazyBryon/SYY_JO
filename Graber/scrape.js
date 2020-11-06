@@ -87,10 +87,10 @@ exports.getScraper = function(){
 		scraper.climb_gov('http://www.gov.cn/xinwen/lianbo/difang.htm');	 
 		//gundong
 		
-		//for(i=1;i<=15;i++){
-		//	var gurl="http://sousuo.gov.cn/column/30611/"+i+".htm";
-		//	scraper.climb_gov(gurl);
-		//}
+		for(i=1;i<=15;i++){
+			var gurl="http://sousuo.gov.cn/column/30611/"+i+".htm";
+			scraper.climb_gov(gurl);
+		}
  
 				 
 		console.log('End to grab..........................');
@@ -156,11 +156,9 @@ exports.getScraper = function(){
 					
 					 				 
 				});
-
-				
+ 
 			});			
-			 
-			
+			  
 		}); 
 	}
 	
@@ -197,18 +195,13 @@ exports.getScraper = function(){
 						saveWx($content2);
 						
 					}
-					 
-									 
+					  		 
 				}); 
 				
 			});				
-			
-			
-			
+			 
 		});
-		
-		
-		
+		 
 	};
 
 	scraper.climb_cenews3=function(rootUrl){
@@ -244,18 +237,13 @@ exports.getScraper = function(){
 						saveWx($content2);
 						
 					}
-					 
-									 
+					  		 
 				}); 
 				
 			});				
-			
-			
-			
+			 
 		});
-		
-		
-		
+		 
 	};
 
 	scraper.climb_gov=function(rootUrl){
@@ -313,17 +301,14 @@ exports.getScraper = function(){
 				
 				//scraper.log(lbl);
 				
-				if(lbl=="生成日期"){
-					
+				if(lbl=="生成日期"){					
 					//console.log(dtVal.data);
 					mtime=dtVal.data; 
 				}
 				
-				if(lbl=="发布机关"){
-					
+				if(lbl=="发布机关"){					
 					//console.log(dtVal);
-					msrc=$2(dtVal).text();
-					
+					msrc=$2(dtVal).text();					
 				}						
 			});												
 		}
@@ -337,12 +322,23 @@ exports.getScraper = function(){
 			msrc=msrc.slice(3); 
 		}
 
+		var mct="";
+
 		var mctNode = $2(".neiright_JPZ_GK_CP");
 		
 		if(!mctNode){
-			mctNode = $2(".content_body_box");
+			mct = $2(".content_body_box").text();
 			
+		}else{
+			var parags = $2(".neiright_JPZ_GK_CP p");
+			mct = getContent(parags);
+			
+			if(!mct){
+				parags = $2(".neiright_JPZ_GK_CP div");
+				mct = getContent(parags);	
+			}			
 		}
+		
 		var lastIndex= subUrl.lastIndexOf('/');
 		var subUrlRoot = subUrl.slice(0,lastIndex +1);
 		var pageName= subUrl.slice(lastIndex-subUrl.length+1);
@@ -355,15 +351,13 @@ exports.getScraper = function(){
 			console.log("creating folder:"+pagePath);
 			fs.mkdirSync(pagePath);
 		}
-		
-		var mct=mctNode.text();								
-		  
+		 
 		var str = "[标题]"+mtitle+"\r\n";
 		str+="[来源]"+msrc+"\r\n";
 		str+="[栏目]\r\n";
 		str+="[地区]\r\n";	  
 		str+="[日期]"+mtime+"\r\n";
-		str+="[正文]\r\n"+mct.trim()+"\r\n";
+		str+="[正文]\r\n"+mct+"\r\n";
 
 		saveTxt(pagePath +mtitle+'.txt', str); 
 		 
@@ -380,15 +374,16 @@ exports.getScraper = function(){
 		var pageState=$ct(".pages-date").text().trim();
 		
 		var parags = $ct(".pages_content p");
-		
-		var contentList=[];
-		for(var pi=0;pi<parags.length;pi++){
-			var tp=parags.eq(pi);
-			contentList.push(tp.text());
-		}
-		
-		var pageC = contentList.join('\r\n');
-		
+		//
+		//var contentList=[];
+		//for(var pi=0;pi<parags.length;pi++){
+		//	var tp=parags.eq(pi);
+		//	contentList.push("　　"+tp.text());
+		//}
+		//
+		//var pageC = contentList.join('\r\n');
+		//var pageC=$ct(".pages_content").text();
+		var pageC = getContent(parags);
 		 
 		
 		var mDate=pageState.slice(0,10);
@@ -400,7 +395,7 @@ exports.getScraper = function(){
 		//str+=pageC.trim()+"\r\n=============================================================\r\n"; 
 		
 		var str = "[标题]"+mtitle+"\r\n"; 
-		str+="[来源]"+mSrc.slice(3)+"\r\n";
+		str+="[来源]"+mSrc.slice(4)+"\r\n";
 		str+="[地区]\r\n";	
 		str+="[作者]\r\n";	
 		str+="[摘要]\r\n";	
@@ -408,7 +403,7 @@ exports.getScraper = function(){
 		str+="[栏目]\r\n";		
 		str+="[专有属性]\r\n";		
 		str+="[日期]"+mDate+"\r\n";
-		str+="[正文]\r\n"+pageC.trim()+"\r\n";		
+		str+="[正文]\r\n"+pageC+"\r\n";		
 		
 		var pagePath='./data2/gov/' +mDate+"/";
 		
@@ -441,8 +436,9 @@ exports.getScraper = function(){
 		var mauthor=$ct(".public_func span").eq(1).text();					
 		var msrc=$ct(".public_func span").eq(2).text();
 
-		var mct=$ct(".TRS_Editor").text();	
-		
+		//var mct=$ct(".TRS_Editor").text();	
+		var parags = $ct(".TRS_Editor p");
+		var pageC = getContent(parags);
 		
 		mtime=mtime.replace('年','-').replace('月','-').replace('日','');
 
@@ -452,7 +448,7 @@ exports.getScraper = function(){
 		str+="[栏目]\r\n";
 		str+="[地区]\r\n";	  
 		str+="[日期]"+mtime+"\r\n";
-		str+="[正文]\r\n"+mct.trim()+"\r\n";
+		str+="[正文]\r\n"+pageC+"\r\n";
 
 		var pagePath='./data2/cenews/' +mtime+"/";
 		
@@ -535,6 +531,30 @@ exports.getScraper = function(){
 		 
 		
 		finishRequest();
+		
+	}
+	
+	function getContent(parags){
+		
+		if(!parags||parags.length==0){
+			return null;
+		}
+		
+		var contentList=[];
+		for(var pi=0;pi<parags.length;pi++){
+			var tp=parags.eq(pi);
+			var paraText = tp.text();
+			
+			if(paraText.indexOf("　　")==-1){
+				paraText= "　　"+paraText;
+			}
+			
+			contentList.push(paraText);
+		}
+		
+		var pageC = contentList.join('\r\n');
+		
+		return pageC;
 		
 	}
 	
