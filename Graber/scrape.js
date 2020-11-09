@@ -1,6 +1,7 @@
 /**************************************************************
-Build:1.1
+Build:2.1
 
+20201109.3
 
 save to seperate files
 sites
@@ -548,6 +549,10 @@ exports.getScraper = function(){
 		for(var pi=0;pi<parags.length;pi++){
 			var tp=parags.eq(pi);
 			var paraText = tp.text();
+			
+			if(paraText.indexOf("　　")==-1){
+				paraText= "　　"+paraText;
+			}
 			
 			if(pi==parags.length-1){
 				if(paraText.endsWith('）')){
