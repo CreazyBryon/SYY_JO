@@ -573,7 +573,7 @@ exports.getScraper = function(){
 	 
 	function saveTxt(filePath, fileContent){
 		
-		fs.writeFile(filePath, fileContent, function (error) {
+		fs.writeFile(filePath, '\ufeff'+fileContent, function (error) {
 			
 			if (error) {
 				console.log(error+" , "+filePath);
