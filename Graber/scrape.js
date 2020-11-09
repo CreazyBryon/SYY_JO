@@ -549,10 +549,21 @@ exports.getScraper = function(){
 			var tp=parags.eq(pi);
 			var paraText = tp.text();
 			
+			if(pi==parags.length-1){
+				if(paraText.endsWith('）')){
+					var leftCIndex = paraText.indexOf('（');
+					
+					if(leftCIndex!=-1){
+						paraText = paraText.slice(0,leftCIndex);
+					}
+				}
+			}
+			
 			contentList.push(paraText);
 		}
 		
 		var pageC = contentList.join('\r\n');
+		 
 		
 		return pageC;
 		
