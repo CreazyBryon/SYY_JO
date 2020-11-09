@@ -354,8 +354,12 @@ exports.getScraper = function(){
 		 
 		var str = "[标题]"+mtitle+"\r\n";
 		str+="[来源]"+msrc+"\r\n";
-		str+="[栏目]\r\n";
-		str+="[地区]\r\n";	  
+		str+="[地区]\r\n";	
+		str+="[作者]\r\n";	
+		str+="[摘要]\r\n";	
+		str+="[关键字]\r\n"; 
+		str+="[栏目]\r\n";		
+		str+="[专有属性]\r\n";  
 		str+="[日期]"+mtime+"\r\n";
 		str+="[正文]\r\n"+mct+"\r\n";
 
@@ -544,10 +548,6 @@ exports.getScraper = function(){
 		for(var pi=0;pi<parags.length;pi++){
 			var tp=parags.eq(pi);
 			var paraText = tp.text();
-			
-			if(paraText.indexOf("　　")==-1){
-				paraText= "　　"+paraText;
-			}
 			
 			contentList.push(paraText);
 		}
