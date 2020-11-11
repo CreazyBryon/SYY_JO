@@ -35,11 +35,10 @@ var getScraper = function(){
 		
 		try{	
 			var objStr = fs.readFileSync('histories.json', 'utf8');
-			console.log(objStr);
 			scraper.histories=JSON.parse(objStr);
 		}catch(err){
 			console.log('history not existing:'+err); 
-			scraper.histories={'财政部':[],mofcom:[],stats:[],ndrc:[]};	
+			scraper.histories={'财政部':[],'商务部':[],'统计局':[],'发改委':[]};	
 			
 		}	 
 		
@@ -54,15 +53,24 @@ var getScraper = function(){
 		scraper.startedRequestCount=0;
 		scraper.endedRequestCount=0;
   
-		scraper.climb('财政部','机构|职能部门|国家-财政','http://www.mof.gov.cn/gkml/caizhengshuju/','.xwfb_listerji a',saveMOF);
+		scraper.climb('财政部','http://www.mof.gov.cn/gkml/caizhengshuju/','.xwfb_listerji a',saveMOF);
 		
-		
- 
+		scraper.climb('商务部','http://www.mofcom.gov.cn/article/tongjiziliao/v/','.txtList_01 a',saveMOFCOM,'http://www.mofcom.gov.cn');			
+		scraper.climb('商务部','http://www.mofcom.gov.cn/article/tongjiziliao/dgzz/','.txtList_01 a',saveMOFCOM,'http://www.mofcom.gov.cn');
 				 
+		scraper.climb('发改委','https://www.ndrc.gov.cn/fgsj/tjsj/jjsjgl/','.u-list a',saveNDRC);
+		scraper.climb('发改委','https://www.ndrc.gov.cn/fgsj/tjsj/jjmy/dwjmjztfx/','.u-list a',saveNDRC);		
+		scraper.climb('发改委','https://www.ndrc.gov.cn/fgsj/tjsj/cyfz/fwyfz/','.u-list a',saveNDRC);		
+		scraper.climb('发改委','https://www.ndrc.gov.cn/fgsj/tjsj/cyfz/zzyfz/','.u-list a',saveNDRC);		
+		scraper.climb('发改委','https://www.ndrc.gov.cn/fgsj/tjsj/jjyx/xdwl/','.u-list a',saveNDRC);		
+		scraper.climb('发改委','https://www.ndrc.gov.cn/fgsj/tjsj/jjyx/hgjjyx/','.u-list a',saveNDRC);	
+		
+		scraper.climb('统计局','http://www.stats.gov.cn/tjsj/zxfb/','.center_list_contlist a',saveST,'http://www.stats.gov.cn');		
+		
 		console.log('End to grab..........................');
 	}
 	
-	scraper.climb=function(site,jigou, mainUrl, listFilter, saveCB){
+	scraper.climb=function(site, mainUrl, listFilter, saveCB, rootUrl){
 		
 		var tempPath='./data2/'+site+'/';
 		try{		
@@ -71,11 +79,11 @@ var getScraper = function(){
 			console.log("creating folder:"+tempPath);
 			fs.mkdirSync(tempPath);
 		}			
-		
-		
+		 
 		scraper.grab(mainUrl,function($1){
 			
 			var mytl =  $1("title").text();
+			//console.log(mainUrl);
 			 
 			$1(listFilter).each(function(i, elem) {
 				 
@@ -99,60 +107,63 @@ var getScraper = function(){
 				var subUrl = href; 
 				
 				if(!subUrl.startsWith('h')){
-					subUrl = mainUrl+subUrl;
-				} 				
- 
-				scraper.grab(subUrl,function($2){
-					saveCB(subUrl,jigou,site,tempPath,$2);
-				 
-			  });			  
-			  
-			});			
+					if(subUrl.startsWith('/')){
+						subUrl = rootUrl+subUrl;
+					}else{
+						subUrl = mainUrl+subUrl;
+					}
+				} 	 
 				
-			 
+				scraper.grab(subUrl,function($2){
+					saveCB(subUrl,site,tempPath,$2);
+				 
+			  });	 
+			});		 
 		});		 
 	}
 	
-	function saveMOF(subUrl,jigou,site,savePath,$ct){
+	function saveMOF(subUrl,site,savePath,$ct){
 		 	
 		var mtitle = $ct(".title_con").text().trim();
 		
-		var fullTxt = $ct(".TRS_Editor .TRS_Editor").text();
-		
-		if(!fullTxt){
-			fullTxt = $ct(".TRS_Editor").text();
-		}
-		
-		var parags = fullTxt.trim().split('\n');
-		
-		var topItem = parags[0]; 
-		
-		var mDate=topItem.slice(0,topItem.indexOf("日"));
-		mDate = mDate.replace('年','-').replace('月','-');
-		var mSrc=topItem.slice(topItem.indexOf('：')+1);
-		 
-		var pageC = getContent(parags.slice(1)); 
-		
-		if(mSrc.endsWith('司')){
-			mSrc = site+mSrc;
-		}
- 
-		var str = genTxt(mtitle,mSrc,jigou,mDate,pageC);
-		 
-		var pagePath = savePath +mDate+"/";
-		
-		try{		
-		 fs.statSync(pagePath);
-		}catch(err){
-			console.log("creating folder:"+pagePath);
-			fs.mkdirSync(pagePath);
-		}						
-
 		if(mtitle){
+			
+			var fullTxt = $ct(".TRS_Editor .TRS_Editor").text();
+			
+			if(!fullTxt){
+				fullTxt = $ct(".TRS_Editor").text();
+			}
+			
+			var parags = fullTxt.trim().split('\n');
+			
+			var topItem = parags[0]; 
+			
+			var mDate=topItem.slice(0,topItem.indexOf("日"));
+			mDate = mDate.replace('年','-').replace('月','-');
+			var mSrc=topItem.slice(topItem.indexOf('：')+1);
+			 
+			var pageC = getContent(parags.slice(1)); 
+			
+			if(mSrc.endsWith('司')){
+				mSrc = site+mSrc;
+			}
+	 
+			var str = genTxt(mtitle,mSrc,'机构|职能部门|国家-财政',mDate,pageC);
+			 
+			var pagePath = savePath +mDate+"/";
+			
+			try{		
+			 fs.statSync(pagePath);
+			}catch(err){
+				console.log("creating folder:"+pagePath);
+				fs.mkdirSync(pagePath);
+			}						
+
+		
  
 			saveTxt(pagePath +mtitle+'.txt', str); 			
 		}else{
-			console.log('!!!!!!failed:'+subUrl);
+			console.log('!!!!!!Unknown page:'+subUrl);
 			
 		}
 		 
@@ -160,10 +171,162 @@ var getScraper = function(){
 		finishRequest();
 	}		
 	
+	function saveMOFCOM(subUrl,site,savePath,$ct){
+		 	
+		var mtitle = $ct(".art-title").text().trim();
+		
+		if(mtitle){
+			
+			var pes = $ct(".art-con p");
+			var parags=[];
+			for(var pi=0;pi<pes.length;pi++){
+				var tp=pes.eq(pi);
+				parags.push(tp.text());
+			}		
+			
+			var pageC = getContent(parags); 
+			
+			//$ct('.at-left script').remove();		  
+			//var topItems = $ct('.at-left p').text().trim().split('\n');	
+			//var mSrc = $ct('.at-left p').text().trim();//topItems[0].slice(3);
+			//var mDate=topItems[1].slice(-16,-6);
+			 
+			var script1 = $ct('body script').eq(0).html();
+			//console.log(script1);
+			eval(script1);
+			var mSrc = source;
+			var mDate = tm.slice(0,10);
+			
+			if(!mSrc.startsWith(site) && mSrc.endsWith('司')){
+				mSrc = site+mSrc;
+			}
+	 
+			var str = genTxt(mtitle,mSrc,'机构|职能部门|国家-商务',mDate,pageC);
+			 
+			var pagePath = savePath +mDate+"/";
+			
+			try{		
+			 fs.statSync(pagePath);
+			}catch(err){
+				console.log("creating folder:"+pagePath);
+				fs.mkdirSync(pagePath);
+			}						
+ 
+			saveTxt(pagePath +mtitle+'.txt', str); 			
+		}else{
+			console.log('!!!!!!Unknown page:'+subUrl);
+			
+		}
+		 
+		
+		finishRequest();
+	}		
 	
+	function saveNDRC(subUrl,site,savePath,$ct){
+		 	
+		var mtitle = $ct(".article_title").text().trim();
+		
+		if(mtitle){
+			
+			var pes = $ct(".TRS_Editor p");
+			
+			if(!pes||pes.length==0){
+				pes = $ct(".TRS_Editor>div");
+			}
+			
+			if(pes.length==1){
+				var f1=pes.eq(0).text();
+				
+				if(f1.trim().startsWith('（')){
+					pes = $ct(".TRS_Editor>div");
+				}
+			}			
+			
+			var parags=[];
+			for(var pi=0;pi<pes.length;pi++){
+				var tp=pes.eq(pi);
+				parags.push(tp.text());
+			}		
+			
+			var pageC = getContent(parags); 
+			
+			var mDate = $ct('.time').text().slice(5).replace('/','-').replace('/','-');		
+			var mSrc = $ct('.laiyuantext span').text();		
+			 
+			
+			if(!mSrc.startsWith(site) && (mSrc.endsWith('室')||mSrc.endsWith('局'))){
+				mSrc = site+mSrc;
+			}
+	 
+			var str = genTxt(mtitle,mSrc,'机构|职能部门|国家-发改',mDate,pageC);
+			 
+			var pagePath = savePath +mDate+"/";
+			
+			try{		
+			 fs.statSync(pagePath);
+			}catch(err){
+				console.log("creating folder:"+pagePath);
+				fs.mkdirSync(pagePath);
+			}						
+ 
+			saveTxt(pagePath +mtitle+'.txt', str); 			
+		}else{
+			console.log('!!!!!!Unknown page:'+subUrl);
+			
+		}
+		 
+		
+		finishRequest();
+	}		
+	
+	function saveST(subUrl,site,savePath,$ct){
+		 	
+		var mtitle = $ct(".xilan_tit").text().trim();
+		
+		if(mtitle){
+			
+			var pes = $ct(".TRS_Editor p");
+			var parags=[];
+			for(var pi=0;pi<pes.length;pi++){
+				var tp=pes.eq(pi);
+				parags.push(tp.text());
+			}	
+			  
+			var pageC = getContent(parags); 
+			
+			var mDate = $ct('.xilan_titf').text().trim().slice(-16,-6)	
+			var mSrc = $ct('.xilan_titf font font').text().trim();		
+			 
+ 
+			var str = genTxt(mtitle,mSrc,'机构|职能部门|国家-统计',mDate,pageC);
+			 
+			var pagePath = savePath +mDate+"/";
+			
+			try{		
+			 fs.statSync(pagePath);
+			}catch(err){
+				console.log("creating folder:"+pagePath);
+				fs.mkdirSync(pagePath);
+			}						
+ 
+			saveTxt(pagePath +mtitle+'.txt', str); 			
+		}else{
+			console.log("!!!!!!!!!!!!!!!!!!!!!!Unknown page:"+subUrl);
+			
+		}
+		 
+		
+		finishRequest();
+	}		
 	
 	function genTxt(mTitle,mSrc,jigou,mDate,mContent){
+		
+		if(!mContent){
+			
+			console.log("!!!!!!!!!!!!!!!!!!!!!!No cotent, date:"+mDate);
+		}
 		  
+		
 		var str = "[标题]"+mTitle+"\r\n"; 
 		str+="[来源]"+mSrc+"\r\n";
 		str+="[地区]全国\r\n";	 
@@ -264,7 +427,7 @@ var getScraper = function(){
 				cb($); 
 			}
 			else{
-				console.log('eeror'+error);		
+				console.log('error:'+error);		
 			}
 		});			
 	}
