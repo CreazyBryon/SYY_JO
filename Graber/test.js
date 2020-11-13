@@ -11,6 +11,7 @@ sites
 var request = require('request');
 var cheerio = require('cheerio');
 var fs = require('fs');
+const window = require('window');
 
 var getScraper = function(){
 	
@@ -285,9 +286,9 @@ var getScraper = function(){
 					
 					var s2=scrs.eq(1);
 					
-					console.log(s2.text());
-					global.window={};
-					global.document={};
+					console.log(s2.html());
+				 
+					global.document=window.document;
 					eval(s2.html());
 				}
 				
