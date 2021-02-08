@@ -627,7 +627,7 @@ exports.getScraper = function(){
 		
 		console.log(msg);
 		
-		var alltxt = loader.getNowFormatDate()+' | '+msg+ "\r\n";
+		var alltxt = scraper.getNowFormatDate()+' | '+msg+ "\r\n";
 		
 		fs.appendFile('./log.txt', alltxt, function (error) {
 		  if (error) {

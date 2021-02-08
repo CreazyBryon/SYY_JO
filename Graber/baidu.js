@@ -38,7 +38,7 @@ var getScraper = function(){
 		console.log('Start to grab..........................');
 		 
 		scraper.startedRequestCount=0;
-		scraper.endedRequestCount=0;
+		scraper.endedRequestCount=0; 
  
 		var meePath='./data2/customs/';
 		try{		
@@ -48,41 +48,32 @@ var getScraper = function(){
 			fs.mkdirSync(meePath);
 		}		
 		 
-		scraper.climb_customs('http://www.customs.gov.cn/customs/302249/302274/jcyjfxwz/jcyjfxwz39/index.html');
+		scraper.climb('https://www.baidu.com/s?rtt=1&bsst=1&cl=2&tn=news&word=%E5%8D%81%E5%9B%9B%E4%BA%94');
+		
+		for(i=1;i<=4;i++){
+			var gurl="https://www.baidu.com/s?rtt=1&bsst=1&cl=2&tn=news&word=%E5%8D%81%E5%9B%9B%E4%BA%94&pn="+(i*10);
+			scraper.climb(gurl);
+		}		
+		
 		 
 				 
 		console.log('End to grab..........................');
 	}
 	
 	
-	scraper.climb_customs=function(rootUrl){
+	scraper.climb=function(rootUrl){
 		
 		scraper.grab(rootUrl,function($2){
 			
-			var mytl =  $2("title").text();
+			var sites =  $2(".c-color-gray.c-font-normal.c-gap-right");
 			
-			console.log(mytl);
-			
-			var mctNode = $2(".conList_ull");
-			
-			mctNode.find('a').each(function(i, elem) {
-				
-				var wordurl = $2(elem).attr('href');
-				var wName = $2(elem).text();
-				
-				var dt = $2(elem).next();
-				
-				var pagePath='./data2/customs/' +dt.text()+"/";
-				
-				//var pp = $2(elem).parent();
-				
-				//$2(pp).text(imgurl);//replace mark
-				//console.log(imgName);
-															
-				saveWord(rootUrl+imgurl,pagePath+ wName+".doc");					
-			});				
-				
-			  
+			var parags="";
+			for(var pi=0;pi<sites.length;pi++){
+				var tp=sites.eq(pi);
+				parags = parags+tp.text()+";";
+			}				
+			 
+			scraper.log(parags);  
 			 
 		});			
 				 
@@ -307,7 +298,7 @@ var getScraper = function(){
 		
 		var alltxt = scraper.getNowFormatDate()+' | '+msg+ "\r\n";
 		
-		fs.appendFile('./log.txt', alltxt, function (error) {
+		fs.appendFile('./baidulog.txt', alltxt, function (error) {
 		  if (error) {
 			console.log('write failed')
 		  } else {

@@ -14,33 +14,22 @@ var fs = require('fs');
 const window = require('window');
 
 var getScraper = function(){
-	
-	
+	 
 	var scraper={};
 	 
 	scraper.start=function(){ 
 		scraper.run();
 	}
-	
-	scraper.loadHis=function(){
-		
-		try{	
-			var objStr = fs.readFileSync('loadedTitles.json', 'utf8');
-			scraper.loadedTitles=JSON.parse(objStr);
-		}catch(err){
-			console.log('history not existing'); 
-			scraper.loadedTitles={mee:[],gov:[],cenews:[]};	
-			
-		}	 
-	}
+	 
 	
 	scraper.run=function(){
 		console.log('Start to grab..........................');
 		 
 		scraper.startedRequestCount=0;
 		scraper.endedRequestCount=0;
+		scraper.proviceDict={};
  
-		var meePath='./data2/customs/';
+		var meePath='./data2/huixin/';
 		try{		
 		 fs.statSync(meePath);
 		}catch(err){
@@ -48,14 +37,14 @@ var getScraper = function(){
 			fs.mkdirSync(meePath);
 		}		
 		 
-		scraper.climb_customs('http://www.customs.gov.cn/customs/302249/302274/jcyjfxwz/jcyjfxwz39/index.html');
+		scraper.climb('https://www.huixinyun.com/policydeclaration/detail?id=11605');
 		 
 				 
 		console.log('End to grab..........................');
 	}
 	
 	
-	scraper.climb_customs=function(rootUrl){
+	scraper.climb=function(rootUrl){
 		
 		scraper.grab(rootUrl,function($2){
 			
@@ -63,124 +52,87 @@ var getScraper = function(){
 			
 			console.log(mytl);
 			
-			var mctNode = $2(".conList_ull");
+			var contents = $2("#contentInput").val();
 			
-			mctNode.find('a').each(function(i, elem) {
+			//console.log(contents);
+			$2("#content").html(contents);
+			
+			var currentProvice="";
+			/*
+			var firstEle = $2("#content").children()[0];
+			
+			console.log(firstEle);
+			*/ 
+			
+			$2("#content>p>span").each(function(i, elem) {
 				
-				var wordurl = $2(elem).attr('href');
-				var wName = $2(elem).text();
+				var eleText = $2(elem).text();
 				
-				var dt = $2(elem).next();
-				
-				var pagePath='./data2/customs/' +dt.text()+"/";
-				
-				//var pp = $2(elem).parent();
-				
-				//$2(pp).text(imgurl);//replace mark
-				//console.log(imgName);
-															
-				saveWord(rootUrl+imgurl,pagePath+ wName+".doc");					
+				if(eleText.indexOf("【")==0){
+					currentProvice = eleText.replace("【","").replace("】","");
+				}else if(eleText.indexOf("三五年远景目标的建议")>0){
+					 
+					var subUrl = $2(elem).find("a").attr('href');
+					
+					console.log(subUrl);
+					
+					if(subUrl){
+					
+						var pageid = getPageId(subUrl);
+						scraper.proviceDict[pageid] = currentProvice;
+						var wName = $2(elem).text();
+						
+						scraper.startedRequestCount++;
+						
+						scraper.grab(subUrl,function($3){
+							saveHuixin(subUrl,$3);
+						 
+						});				
+					}								
+		 		}		
 			});				
 				
-			  
+			
 			 
 		});			
 				 
 	}
 	
-	scraper.loadCookie = function(code,header){
-			code = code.replace('eval','jasonY').replace('eval','getCode2').replace('jasonY','eval')
-	 
-			scraper.ydyl_code="";
-			
-			
-			//console.log("code="+code);
-			
-			eval(code);
-			//console.log(scraper.ydyl_code);
-			
-			global.setTimeout2=global.setTimeout;
-			global.setTimeout=function(cmd,intv){
-				console.log(cmd);	
-				 
-			}
-			global.window={};
-			if(!global.document){
-				global.document = {attachEvent:function(evName,cb){
-					cb(); 
-				}}; 
-			 
-				var setCk=header['set-cookie'][0];
-				global.document.setCookie=setCk.slice(0,setCk.indexOf(';'));
-			}
-			eval(scraper.ydyl_code);
-			
-			//console.log(global.document)
+	function getPageId(url){
+		
+		var pageName = url.slice(url.lastIndexOf("/")+1);
+		
+		return pageName.replace(".html","");
 		
 	}
- 
+	
 	 
-	function saveCustoms(subUrl, $2){
+	function saveHuixin(subUrl, $2){
 
-		var mtitle = $2(".neiright_Title").text();
-		
-		if(!mtitle){
-			mtitle=$2(".cjcs_phone_title").text();
-		}
-		
-		var mtime =  $2(".time").text();
-		
-		if(!mtime){
-			$2(".content_top_box div").each(function(i, elem) {
-				var lbl=$2(elem.children[0]).text();
-				var dtVal=elem.children[1];
-				
-				//scraper.log(lbl);
-				
-				if(lbl=="生成日期"){					
-					//console.log(dtVal.data);
-					mtime=dtVal.data; 
-				}
-				
-				if(lbl=="发布机关"){					
-					//console.log(dtVal);
-					msrc=$2(dtVal).text();					
-				}						
-			});												
-		}
+		$2(".title-view .title a").remove();
+		var mtitle = $2(".title-view .title").text().trim();
+	  
+		var mtime =  $2(".notice-num span").eq(1).text().trim();
 		 
-		var msrc=$2(".xqLyPc").last().text();
+		 
+		var msrc="";
+
 		
-		if(!msrc){
+ 
+		var pes = $2(".news-info p");
+		var parags=[];
+		for(var pi=0;pi<pes.length;pi++){
+			var tp=pes.eq(pi);
+			parags.push(tp.text());
+		}			
+		
+		var mct=getContent(parags);
+		
+		var pageid = getPageId(subUrl);
+		var myProvice = scraper.proviceDict[pageid];		
+			  
+		var pagePath='./data2/huixin/' +myProvice+"/";
 			 
-		}
-		else{
-			msrc=msrc.slice(3); 
-		}
-
-		var mct="";
-
-		var mctNode = $2(".neiright_JPZ_GK_CP");
-		
-		if(!mctNode){
-			mct = $2(".content_body_box").text();
-			
-		}else{
-			var parags = $2(".neiright_JPZ_GK_CP p");
-			mct = getContent(parags);
-			
-			if(!mct){
-				parags = $2(".neiright_JPZ_GK_CP div");
-				mct = getContent(parags);	
-			}			
-		}
-		
-		var lastIndex= subUrl.lastIndexOf('/');
-		var subUrlRoot = subUrl.slice(0,lastIndex +1);
-		var pageName= subUrl.slice(lastIndex-subUrl.length+1);
-		var pagePath='./data2/mee/' +mtime+"/";
-			
-
 		try{		
 		 fs.statSync(pagePath);
 		}catch(err){
@@ -204,7 +156,6 @@ var getScraper = function(){
 		finishRequest();
 	}
 	 
-	
 	function getContent(parags){
 		
 		if(!parags||parags.length==0){
@@ -213,8 +164,8 @@ var getScraper = function(){
 		
 		var contentList=[];
 		for(var pi=0;pi<parags.length;pi++){
-			var tp=parags.eq(pi);
-			var paraText = tp.text();
+	 
+			var paraText = parags[pi];
 			
 			if(paraText.indexOf("　　")==-1){
 				paraText= "　　"+paraText;
@@ -238,16 +189,15 @@ var getScraper = function(){
 		
 		return pageC;
 		
-	}
+	}	
+ 
 	
 	function finishRequest(){
 		scraper.endedRequestCount++;
 		
 		if(scraper.endedRequestCount==scraper.startedRequestCount){
-			console.log("all finished======================================");
-			
-			var objStr = JSON.stringify(scraper.loadedTitles);
-			saveTxt("loadedTitles.json",objStr); 		
+			console.log("all finished======================================"+scraper.startedRequestCount);
+			 
 		}
 		
 	}
@@ -334,34 +284,7 @@ var getScraper = function(){
 		return currentDate;
 	}
 	 
-	
-	
-	function saveWord(url, path){
-		 
-		 
-		
-		var readStream = request(url);
-		//console.log(subUrlRoot+imgurl);
-		var writeStream = fs.createWriteStream(path);
-		readStream.pipe(writeStream);
-		 
-		 readStream.on('end', function() {
-			//console.log('download end');
-		});
-		readStream.on('error', function(err) {
-			console.log(err)
-		})
-		writeStream.on("error", function(err) {
-			//console.log("doc write finished");
-		  console.log(err)
-		});
-		writeStream.on("finish", function() {
-			//console.log("doc write finished");
-			writeStream.end();
-		});								
-		
-	}
- 
+	 
 
 
 	return scraper;
