@@ -1,13 +1,10 @@
 /**************************************************************
-Build:2.1
+Build:3.1
 
-20201109.3
+20210310.2
 
 save to seperate files
-sites
-http://www.mee.gov.cn/ywdt/hjywnews/
-https://www.cenews.com.cn/opinion/hjsp/
-http://www.gov.cn/xinwen/lianbo/difang.htm
+ 
 
 ***************************************************************/
 
@@ -21,17 +18,18 @@ exports.getScraper = function(){
 	var scraper={};
 	 
 	scraper.start=function(){ 
+
 		scraper.run();
 	}
 	
 	scraper.loadHis=function(){
 		
 		try{	
-			var objStr = fs.readFileSync('loadedTitles.json', 'utf8');
-			scraper.loadedTitles=JSON.parse(objStr);
+			var objStr = fs.readFileSync('histories1.json', 'utf8');
+			scraper.histories=JSON.parse(objStr);
 		}catch(err){
-			console.log('history not existing'); 
-			scraper.loadedTitles={mee:[],gov:[],cenews:[]};	
+			console.log('history not existing: '+err); 
+			scraper.histories={};	
 			
 		}	 
 	}
@@ -43,249 +41,116 @@ exports.getScraper = function(){
 		  
 		scraper.startedRequestCount=0;
 		scraper.endedRequestCount=0;
- 
-		var meePath='./data2/mee/';
-		try{		
-		 fs.statSync(meePath);
-		}catch(err){
-			console.log("creating folder:"+meePath);
-			fs.mkdirSync(meePath);
-		}		
-		 
-		scraper.climb_mee('http://www.mee.gov.cn/ywdt/hjywnews/');
 		
-		scraper.climb_mee('http://www.mee.gov.cn/ywdt/dfnews/');		
 		
-		var cnPath='./data2/cenews/';
-		try{		
-		 fs.statSync(cnPath);
-		}catch(err){
-			console.log("creating folder:"+cnPath);
-			fs.mkdirSync(cnPath);
-		}	
-		//pinglun
-		scraper.climb_cenews('https://www.cenews.com.cn/opinion/hjsp/');
-		//touzi
-		scraper.climb_cenews('https://www.cenews.com.cn/pollution_ctr/xydt/');		
-		//lingdao
-		scraper.climb_cenews('https://www.cenews.com.cn/leader/talk/');		
-		//zhiliang
-		scraper.climb_cenews('https://www.cenews.com.cn/environment/zlfb/');
- 
-		scraper.climb_cenews2('https://www.cenews.com.cn/news/');
+		/**/
+		scraper.climb('mee','http://www.mee.gov.cn/ywdt/hjywnews/','.cjcx_biaob',saveMee);
+		scraper.climb('mee','http://www.mee.gov.cn/ywdt/dfnews/','.cjcx_biaob',saveMee);		
 		
-		scraper.climb_cenews3('https://www.cenews.com.cn/news/index_1445_1.html');
-	
-		var govPath='./data2/gov/';
-		try{
-		 fs.statSync(govPath);
-		}catch(err){
-			console.log("creating folder: "+govPath);
-			fs.mkdirSync(govPath);
-		}	
-		 
-		 
-		scraper.climb_gov('http://www.gov.cn/xinwen/lianbo/difang.htm');	 
-		//gundong
 		
+		scraper.climb('cenews','https://www.cenews.com.cn/opinion/hjsp/','.list_txt li a',saveCenews);	  	
+		scraper.climb('cenews','https://www.cenews.com.cn/pollution_ctr/xydt/','.list_txt li a',saveCenews);	 
+		scraper.climb('cenews','https://www.cenews.com.cn/leader/talk/','.list_txt a',saveCenews);	 
+		scraper.climb('cenews','https://www.cenews.com.cn/environment/zlfb/','.list_txt li a',saveCenews);	 		
+		
+		scraper.climb('cenews','https://www.cenews.com.cn/news/','#moreli .cjlisttil a',saveCenews);	 
+		scraper.climb('cenews','https://www.cenews.com.cn/news/index_1445_1.html','.cjlisttil a',saveCenews,'https://www.cenews.com.cn/news/');	 		
+		
+
+		scraper.climb('gov','http://www.gov.cn/xinwen/lianbo/difang.htm','.list.list_1.list_2 a',saveGOV,'http://www.gov.cn');
+	 
+	  
 		for(i=1;i<=15;i++){
 			var gurl="http://sousuo.gov.cn/column/30611/"+i+".htm";
-			scraper.climb_gov(gurl);
+			//scraper.climb_gov(gurl);
+			scraper.climb('gov',gurl,'.list.list_1.list_2 a',saveGOV,'http://www.gov.cn');
 		}
  
+ 
+ 		scraper.climb('chinanews','http://www.chinanews.com/cj/gd.shtml','.dd_bt a',saveChinanews,'http://www.chinanews.com/');	
+	
+ 		scraper.climb('kuaixun','https://kuaixun.stcn.com/','#news_list2 li a',saveKuaixun);
+		
+		//https://kuaixun.stcn.com/index_17.html
+		for(j=1;j<=19;j++){
+			
+			var gurl="https://kuaixun.stcn.com/index_"+j+".html";
+			//scraper.climb_gov(gurl);
+			scraper.climb('kuaixun',gurl,'#news_list2 li a',saveKuaixun,'https://kuaixun.stcn.com/');
+		}		
+ 	
 				 
 		console.log('End to grab..........................');
 	}
 	
-	
-	scraper.climb_mee=function(rootUrl){
+	scraper.climb=function(site, mainUrl, listFilter, saveCB, rootUrl){
 		
-		scraper.grab(rootUrl,function($){
+		var tempPath='./data2/'+site+'/';
+		try{		
+		 fs.statSync(tempPath);
+		}catch(err){
+			console.log("creating folder:"+tempPath);
+			fs.mkdirSync(tempPath);
+		}			
+		
+		scraper.startedRequestCount++;
+		
+		scraper.grab(mainUrl,function($1){
 			
-			var mytl =  $("title").text();
+			var mytl =  $1("title").text();
+			//console.log(mainUrl);
 			 
-			$('.cjcx_biaob').each(function(i, elem) {
+			$1(listFilter).each(function(i, elem) {
 				 
-				var href = $(elem).attr("href");
+				var href = $1(elem).attr("href");
 				
-				var atitle = $(elem).text();				
-				if(scraper.loadedTitles.mee.indexOf(atitle)>-1){
-					console.log("已下载的mee文章:"+atitle);
+				if(href.endsWith(".pdf")){
+					
 					return true;
 				}
 				
-				scraper.loadedTitles.mee.push(atitle);
+				var atitle = $1(elem).text().trim();		
+
+				if(!scraper.histories[site]){
+					scraper.histories[site]=[];
+				}
 				
+				if(scraper.histories[site].indexOf(atitle)>-1){
+					console.log("已下载过的"+site+"文章:"+atitle);
+					return true;
+				}
+				
+				scraper.histories[site].push(atitle);				
 				scraper.startedRequestCount++;
-				//console.log(href);
-				var subUrl=rootUrl+href;
-				//var subUrl='http://www.mee.gov.cn/ywdt/dfnews/202002/t20200206_761584.shtml';
+	
+				var subUrl = href;  
+				
+				if(!subUrl.startsWith('http')){
+					//if(subUrl.startsWith('/')){
+					//	subUrl = rootUrl+subUrl;
+					//}else{
+					//	if(mainUrl.endsWith('html')){
+					//		subUrl = rootUrl+subUrl;
+					//	}else{
+					//		subUrl = mainUrl+subUrl;
+					//	}
+					//}
+					var murl=new URL(subUrl,mainUrl);
+					//console.log(murl);
+					subUrl = murl.href;
+				} 	 
+				
 				scraper.grab(subUrl,function($2){
-					saveMee(subUrl,$2);
+					saveCB(href,site,tempPath,$2);
 				 
-			  });			  
-			  
-			});			
-				
-			 
-		});			
-				 
-	}
-	
-	
-	scraper.climb_cenews=function(rootUrl){
-		
-		scraper.grab(rootUrl,function($content){
-			
-			$content('.list_txt a').each(function(i, elem) {
-				var href = $content(elem).attr("href");
-				
-				var atitle = $content(elem).text();				
-				if(scraper.loadedTitles.cenews.indexOf(atitle)>-1){
-					console.log("已下载的cenews文章:"+atitle);
-					return true;
-				}
-				
-				scraper.loadedTitles.cenews.push(atitle);
-				
-				scraper.startedRequestCount++;
-				
-				var subUrl = rootUrl+href;
-				scraper.grab(subUrl,function($content2){
-					//var mytl =  $content2("title").text();
-					saveCenews(subUrl,$content2);
-					
-					 				 
-				});
- 
-			});			
-			  
-		}); 
-	}
-	
-	
-	scraper.climb_cenews2=function(rootUrl){
-		
-		scraper.grab(rootUrl,function($content){
-			
-			$content('#moreli .cjlisttil a').each(function(i, elem) {
-				var href = $content(elem).attr("href");
- 
-				 var subUrl = href;
-				 var dotIndex=href.indexOf('./');
-				
-				if(dotIndex>-1){
-					subUrl = rootUrl+href;
-				} 
-				
-				var atitle = $content(elem).text();				
-				if(scraper.loadedTitles.cenews.indexOf(atitle)>-1){
-					console.log("已下载的cenews文章:"+atitle);
-					return true;
-				}
-				
-				scraper.loadedTitles.cenews.push(atitle);
-				
-				scraper.startedRequestCount++;				
-				
-				scraper.grab(subUrl,function($content2){
-					
-					if(dotIndex>-1){
-						saveCenews(subUrl,$content2);
-					}else{
-						saveWx($content2);
-						
-					}
-					  		 
-				}); 
-				
-			});				
-			 
-		});
-		 
-	};
-
-	scraper.climb_cenews3=function(rootUrl){
-		
-		scraper.grab(rootUrl,function($content){
-			
-			$content('.cjlisttil a').each(function(i, elem) {
-				//console.log(elem);
-				var href = $content(elem).attr("href");
-			  
-				 var subUrl = href;
-				 var dotIndex=href.indexOf('./');
-				
-				if(dotIndex>-1){
-					subUrl = 'https://www.cenews.com.cn/news/'+href;
-				} 
-				
-				var atitle = $content(elem).text();				
-				if(scraper.loadedTitles.cenews.indexOf(atitle)>-1){
-					console.log("已下载的cenews文章:"+atitle);
-					return true;
-				}
-				
-				scraper.loadedTitles.cenews.push(atitle);
-				
-				scraper.startedRequestCount++;				
-				
-				scraper.grab(subUrl,function($content2){
-					
-					if(dotIndex>-1){
-						saveCenews(subUrl,$content2);
-					}else{
-						saveWx($content2);
-						
-					}
-					  		 
-				}); 
-				
-			});				
-			 
-		});
-		 
-	};
-
-	scraper.climb_gov=function(rootUrl){
-		
-		scraper.grab(rootUrl,function($content){
-		 
-			var lists = $content('.list.list_1.list_2 a');
-	   
-			lists.each(function(i, elem) {
-				
-				var href = $content(elem).attr("href");
-				
-				var subUrl = '';
-				if(href.startsWith('http')){
-					subUrl = href;
-					
-				}else{
-					subUrl = 'http://www.gov.cn'+href;
-				}
-				
-				var atitle = $content(elem).text();				
-				if(scraper.loadedTitles.gov.indexOf(atitle)>-1){
-					console.log("已下载的gov文章:"+atitle);
-					return true;
-				}
-				
-				scraper.loadedTitles.gov.push(atitle);
-				
-				scraper.startedRequestCount++;				
-			        
-				scraper.grab(subUrl,function($content2){
-					 
-					saveGOV(subUrl,$content2);
-									 
-				}); 
-			 
+			  });	 
 			});		 
-		}); 
-	};	
+		});		 
+	}
+	
 	 
-	function saveMee(subUrl, $2){
+	 
+	function saveMee(subUrl,site,savePath, $2){
 
 		var mtitle = $2(".neiright_Title").text();
 		
@@ -343,7 +208,7 @@ exports.getScraper = function(){
 		var lastIndex= subUrl.lastIndexOf('/');
 		var subUrlRoot = subUrl.slice(0,lastIndex +1);
 		var pageName= subUrl.slice(lastIndex-subUrl.length+1);
-		var pagePath='./data2/mee/' +mtime+"/";
+		var pagePath=savePath +mtime+"/";
 			
 
 		try{		
@@ -365,14 +230,14 @@ exports.getScraper = function(){
 		str+="[正文]\r\n"+mct+"\r\n";
 
 		saveTxt(pagePath +mtitle+'.txt', str); 
-		 
-		finishRequest();
+		  
 	}
 	
-	function saveGOV(subUrl,$ct){
+	function saveGOV(subUrl,site,savePath,$ct){
 		 
 		
-		var mtitle = $ct(".article h1").text().trim();
+		var mtitleOld = $ct(".article h1").text().trim();
+		var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
 		
 		$ct(".pages_print").remove();
 		
@@ -410,7 +275,7 @@ exports.getScraper = function(){
 		str+="[日期]"+mDate+"\r\n";
 		str+="[正文]\r\n"+pageC+"\r\n";		
 		
-		var pagePath='./data2/gov/' +mDate+"/";
+		var pagePath=savePath +mDate+"/";
 		
 		try{		
 		 fs.statSync(pagePath);
@@ -428,54 +293,61 @@ exports.getScraper = function(){
 		}
 		 
 		
-		finishRequest();
+		
 	}	
 	
 	 
-	function saveCenews(subUrl,$ct){
+	function saveCenews(subUrl,site,savePath,$ct){
+		
+		var dotIndex=subUrl.indexOf('./');
+		
+		if(dotIndex>-1){
+	 	
+			 
+			var mtitleOld = $ct(".hjbwap-xiangqing-h2").text();
+			var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
 		 
-		var mtitleOld = $ct(".hjbwap-xiangqing-h2").text();
-		var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
-	 
-		var mtime=$ct(".public_func span").eq(0).text();
-		var mauthor=$ct(".public_func span").eq(1).text();					
-		var msrc=$ct(".public_func span").eq(2).text();
+			var mtime=$ct(".public_func span").eq(0).text();
+			var mauthor=$ct(".public_func span").eq(1).text();					
+			var msrc=$ct(".public_func span").eq(2).text();
 
-		//var mct=$ct(".TRS_Editor").text();	
-		var parags = $ct(".TRS_Editor p");
-		var pageC = getContent(parags);
-		
-		mtime=mtime.replace('年','-').replace('月','-').replace('日','');
-
-		var str = "[标题]"+mtitle+"\r\n";
-		str+="[作者]"+mauthor.slice(3)+"\r\n";
-		str+="[来源]"+msrc.slice(3)+"\r\n";
-		str+="[栏目]\r\n";
-		str+="[地区]\r\n";	  
-		str+="[日期]"+mtime+"\r\n";
-		str+="[正文]\r\n"+pageC+"\r\n";
-
-		var pagePath='./data2/cenews/' +mtime+"/";
-		
-		try{		
-		 fs.statSync(pagePath);
-		}catch(err){
-			console.log("creating folder:"+pagePath);
-			fs.mkdirSync(pagePath);
-		}					
-		
-		if(mtitle){
- 
-			saveTxt(pagePath +mtitle+'.txt', str); 			
-		}else{
-			console.log('!!!!!!failed:'+subUrl);
+			//var mct=$ct(".TRS_Editor").text();	
+			var parags = $ct(".TRS_Editor p");
+			var pageC = getContent(parags);
 			
-		}			
-		 
-		finishRequest();
+			mtime=mtime.replace('年','-').replace('月','-').replace('日','');
+
+			var str = "[标题]"+mtitle+"\r\n";
+			str+="[作者]"+mauthor.slice(3)+"\r\n";
+			str+="[来源]"+msrc.slice(3)+"\r\n";
+			str+="[栏目]\r\n";
+			str+="[地区]\r\n";	  
+			str+="[日期]"+mtime+"\r\n";
+			str+="[正文]\r\n"+pageC+"\r\n";
+
+			var pagePath='./data2/cenews/' +mtime+"/";
+			
+			try{		
+			 fs.statSync(pagePath);
+			}catch(err){
+				console.log("creating folder:"+pagePath);
+				fs.mkdirSync(pagePath);
+			}					
+			
+			if(mtitle){
+	 
+				saveTxt(pagePath +mtitle+'.txt', str); 			
+			}else{
+				console.log('!!!!!!failed:'+subUrl);
+				
+			}			
+			  
+		}else{
+			saveWx(subUrl,site,savePath,$ct);
+		}
 	}
 	
-	function saveWx($ct){
+	function saveWx(subUrl,site,savePath,$ct){
 		var mtitleOld = $ct(".rich_media_title").text().trim();
 		var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
 						
@@ -518,7 +390,7 @@ exports.getScraper = function(){
 		str+="[日期]"+mtime+"\r\n";
 		str+="[正文]\r\n"+mct+"\r\n";
 
-		var pagePath='./data2/cenews/' +mtime+"/";
+		var pagePath=savePath +mtime+"/";
 
 		try{		
 		 fs.statSync(pagePath);
@@ -533,11 +405,150 @@ exports.getScraper = function(){
 			console.log('!!!!!!failed:'+subUrl);
 			
 		}			
-		 
-		
-		finishRequest();
+		  
 		
 	}
+	
+	
+	function saveChinanews(subUrl,site,savePath,$ct){
+		var mtitleOld = $ct('.content>h1').text().trim();		
+		var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
+		
+		var leftt = $ct(".left-t").text().trim();
+						
+		var mtimeOld= leftt.slice(0,10); 
+		var mtime = mtimeOld.replace('年','-').replace('月','-');
+	 
+		var msrc = leftt.slice(21,-4);
+
+
+		var parags=$ct(".left_zw p");	
+
+		var mct = getContent(parags);
+		 
+
+		var str = "[标题]"+mtitle+"\r\n";
+		str+="[作者]\r\n";
+		str+="[来源]"+msrc+"\r\n";
+		str+="[栏目]\r\n";
+		str+="[地区]\r\n";	  
+		str+="[日期]"+mtime+"\r\n";
+		str+="[正文]\r\n"+mct+"\r\n";
+
+		var pagePath=savePath +mtime+"/";
+
+		try{		
+		 fs.statSync(pagePath);
+		}catch(err){
+			console.log("creating folder:"+pagePath);
+			fs.mkdirSync(pagePath);
+		}					
+
+		if(mtitle){
+			saveTxt(pagePath +mtitle+'.txt', str); 		
+		}else{
+			console.log('!!!!!!failed:'+subUrl);
+			
+		}			
+		  
+		
+	}	
+	
+
+	function saveKuaixun(subUrl,site,savePath,$ct){
+		
+		if(subUrl.indexOf('jwview')>-1){
+			saveKuaixun2(subUrl,site,savePath,$ct);
+		}else{
+			
+			var mtitleOld = $ct('.intal_tit>h2').text().trim();		
+			var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
+			
+			var leftt = $ct(".info").text().trim();
+							
+			var mtime = leftt.slice(0,10);
+			//var mtime=mtimeOld.replace('-','年').replace('-','月')+'日';
+		 
+		 
+			var msrcOld = $ct(".info span").eq(0).text().trim();
+			var msrc = msrcOld.slice(3).trim();
+
+			var parags=$ct(".txt_con p");	
+
+			var mct = getContent(parags);
+			 
+
+			var str = "[标题]"+mtitle+"\r\n";
+			str+="[作者]\r\n";
+			str+="[来源]"+msrc+"\r\n";
+			str+="[栏目]\r\n";
+			str+="[地区]\r\n";	  
+			str+="[日期]"+mtime+"\r\n";
+			str+="[正文]\r\n"+mct+"\r\n";
+
+			var pagePath=savePath +mtime+"/";
+
+			try{		
+			 fs.statSync(pagePath);
+			}catch(err){
+				console.log("creating folder:"+pagePath);
+				fs.mkdirSync(pagePath);
+			}					
+
+			if(mtitle){
+				saveTxt(pagePath +mtitle+'.txt', str); 		
+			}else{
+				console.log('!!!!!!failed:'+subUrl);
+				
+			}			
+			  
+		}
+	}		
+	
+	function saveKuaixun2(subUrl,site,savePath,$ct){
+		
+		var mtitleOld = $ct('header h1').text().trim();		
+		var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
+		
+		var leftt = $ct("header em").text().trim();						
+		var mtime = leftt.slice(0,10);
+		//var mtime=mtimeOld.replace('-','年').replace('-','月')+'日';
+	 
+	 
+		var msrc = $ct("header p").text().trim(); 
+		
+		var parags=$ct("#article p");	
+
+		var mct = getContent(parags);
+		 
+
+		var str = "[标题]"+mtitle+"\r\n";
+		str+="[作者]\r\n";
+		str+="[来源]"+msrc+"\r\n";
+		str+="[栏目]\r\n";
+		str+="[地区]\r\n";	  
+		str+="[日期]"+mtime+"\r\n";
+		str+="[正文]\r\n"+mct+"\r\n";
+
+		var pagePath=savePath +mtime+"/";
+
+		try{		
+		 fs.statSync(pagePath);
+		}catch(err){
+			console.log("creating folder:"+pagePath);
+			fs.mkdirSync(pagePath);
+		}					
+
+		if(mtitle){
+			saveTxt(pagePath +mtitle+'.txt', str); 		
+		}else{
+			console.log('!!!!!!failed:'+subUrl);
+			
+		}			
+		
+	}
+	
+	//================================================================================================================
 	
 	function getContent(parags){
 		
@@ -562,6 +573,10 @@ exports.getScraper = function(){
 						paraText = paraText.slice(0,leftCIndex);
 					}
 				}
+				
+				if(paraText.indexOf('不得转载')>-1){
+					paraText = '';
+				}
 			}
 			
 			contentList.push(paraText);
@@ -573,6 +588,7 @@ exports.getScraper = function(){
 		return pageC;
 		
 	}
+ 
 	
 	function finishRequest(){
 		scraper.endedRequestCount++;
@@ -580,11 +596,22 @@ exports.getScraper = function(){
 		if(scraper.endedRequestCount==scraper.startedRequestCount){
 			console.log("all finished======================================");
 			
-			var objStr = JSON.stringify(scraper.loadedTitles);
-			saveTxt("loadedTitles.json",objStr); 		
+			var objStr = JSON.stringify(scraper.histories);
+		 
+			fs.writeFile("histories1.json", objStr, function (error) {
+				
+				if (error) {
+					console.log(error+" , "+objStr);
+				} else {
+					console.log('writed to histories.json');
+				} 
+			});				
+		}else{
+			console.log("started:"+scraper.startedRequestCount+"; finished:"+scraper.endedRequestCount);
+			
 		}
 		
-	}
+	}	
 		
 	 
 	function saveTxt(filePath, fileContent){
@@ -603,12 +630,13 @@ exports.getScraper = function(){
 	
 	
  
-	scraper.grab=function(url, cb, times){ 
+	scraper.grab=function(url, cb){ 
  
 
 		request(url, function(error, response, html){
 
 			//console.log(response.headers);
+			finishRequest();
 			  
 			if(!error){
 				// Next, we'll utilize the cheerio library on the returned html which will essentially give us jQuery functionality
@@ -617,7 +645,7 @@ exports.getScraper = function(){
 				cb($); 
 			}
 			else{
-				console.log('eeror'+error);
+				console.log('grab-error'+error+' | '+url);
 				
 			}
 		});			
@@ -657,33 +685,6 @@ exports.getScraper = function(){
 	}
 	 
 	
-	
-	function saveImg(url, path){
-		 
-		 
-		
-		var readStream = request(url);
-		//console.log(subUrlRoot+imgurl);
-		var writeStream = fs.createWriteStream(path);
-		readStream.pipe(writeStream);
-		 
-		 readStream.on('end', function() {
-			//console.log('download end');
-		});
-		readStream.on('error', function(err) {
-			console.log(err)
-		})
-		writeStream.on("error", function(err) {
-			//console.log("doc write finished");
-		  console.log(err)
-		});
-		writeStream.on("finish", function() {
-			//console.log("doc write finished");
-			writeStream.end();
-		});								
-		
-	}
- 
 
 
 	return scraper;
