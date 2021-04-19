@@ -43,7 +43,7 @@ exports.getScraper = function(){
 		scraper.endedRequestCount=0;
 		
 		
-		/**/
+		/* */
 		scraper.climb('mee','http://www.mee.gov.cn/ywdt/hjywnews/','.cjcx_biaob',saveMee);
 		scraper.climb('mee','http://www.mee.gov.cn/ywdt/dfnews/','.cjcx_biaob',saveMee);		
 		
@@ -65,7 +65,7 @@ exports.getScraper = function(){
 			//scraper.climb_gov(gurl);
 			scraper.climb('gov',gurl,'.list.list_1.list_2 a',saveGOV,'http://www.gov.cn');
 		}
- 
+
  
  		scraper.climb('chinanews','http://www.chinanews.com/cj/gd.shtml','.dd_bt a',saveChinanews,'http://www.chinanews.com/');	
 	
@@ -78,12 +78,17 @@ exports.getScraper = function(){
 			//scraper.climb_gov(gurl);
 			scraper.climb('kuaixun',gurl,'#news_list2 li a',saveKuaixun,'https://kuaixun.stcn.com/');
 		}		
+		
+		
+		
+		
+		
  	
 				 
 		console.log('End to grab..........................');
 	}
 	
-	scraper.climb=function(site, mainUrl, listFilter, saveCB, rootUrl){
+	scraper.climb=function(site, mainUrl, listFilter, readCB, rootUrl){
 		
 		var tempPath='./data2/'+site+'/';
 		try{		
@@ -126,22 +131,44 @@ exports.getScraper = function(){
 				var subUrl = href;  
 				
 				if(!subUrl.startsWith('http')){
-					//if(subUrl.startsWith('/')){
-					//	subUrl = rootUrl+subUrl;
-					//}else{
-					//	if(mainUrl.endsWith('html')){
-					//		subUrl = rootUrl+subUrl;
-					//	}else{
-					//		subUrl = mainUrl+subUrl;
-					//	}
-					//}
+
 					var murl=new URL(subUrl,mainUrl);
 					//console.log(murl);
 					subUrl = murl.href;
 				} 	 
 				
 				scraper.grab(subUrl,function($2){
-					saveCB(href,site,tempPath,$2);
+					var pageInfo=0;
+					var tt="";
+					
+					try{ 
+						tt=$1("title").text();
+						pageInfo = readCB(href,$2);
+					}catch(err){
+						console.log("Sub page failed, url="+subUrl+" ; title="+tt);
+						console.log(err);						
+					}
+					
+					if(pageInfo&&pageInfo.aTitle){
+						
+						var datePath = tempPath + pageInfo.aDate + "/";
+						
+						try{		
+						 fs.statSync(datePath);
+						}catch(err){
+							console.log("creating folder:"+datePath);
+							fs.mkdirSync(datePath);
+						}						
+						
+						var validT=(pageInfo.aTitle.replace(/[ &\/\\#,+()$~%.'":*?<>{}]/g, ""));
+		 
+						var fileP = datePath + validT + '.txt'
+			 
+						saveTxt(fileP, pageInfo.aData); 			
+					}else{
+						console.log('!!!!!!Pa failed:'+subUrl);
+						
+					}							
 				 
 			  });	 
 			});		 
@@ -150,7 +177,7 @@ exports.getScraper = function(){
 	
 	 
 	 
-	function saveMee(subUrl,site,savePath, $2){
+	function saveMee(subUrl, $2){
 
 		var mtitle = $2(".neiright_Title").text();
 		
@@ -164,16 +191,12 @@ exports.getScraper = function(){
 			$2(".content_top_box div").each(function(i, elem) {
 				var lbl=$2(elem.children[0]).text();
 				var dtVal=elem.children[1];
-				
-				//scraper.log(lbl);
-				
-				if(lbl=="生成日期"){					
-					//console.log(dtVal.data);
+				 
+				if(lbl=="生成日期"){				 
 					mtime=dtVal.data; 
 				}
 				
-				if(lbl=="发布机关"){					
-					//console.log(dtVal);
+				if(lbl=="发布机关"){			 
 					msrc=$2(dtVal).text();					
 				}						
 			});												
@@ -205,19 +228,6 @@ exports.getScraper = function(){
 			}			
 		}
 		
-		var lastIndex= subUrl.lastIndexOf('/');
-		var subUrlRoot = subUrl.slice(0,lastIndex +1);
-		var pageName= subUrl.slice(lastIndex-subUrl.length+1);
-		var pagePath=savePath +mtime+"/";
-			
-
-		try{		
-		 fs.statSync(pagePath);
-		}catch(err){
-			console.log("creating folder:"+pagePath);
-			fs.mkdirSync(pagePath);
-		}
-		 
 		var str = "[标题]"+mtitle+"\r\n";
 		str+="[来源]"+msrc+"\r\n";
 		str+="[地区]\r\n";	
@@ -227,43 +237,30 @@ exports.getScraper = function(){
 		str+="[栏目]\r\n";		
 		str+="[专有属性]\r\n";  
 		str+="[日期]"+mtime+"\r\n";
-		str+="[正文]\r\n"+mct+"\r\n";
-
-		saveTxt(pagePath +mtitle+'.txt', str); 
-		  
+		str+="[正文]\r\n"+mct+"\r\n";		
+		
+		var pInfo = { "aDate":mtime, "aTitle":mtitle, "aData":str };		
+		return pInfo;
+		 
 	}
 	
-	function saveGOV(subUrl,site,savePath,$ct){
-		 
-		
-		var mtitleOld = $ct(".article h1").text().trim();
-		var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
+	function saveGOV(subUrl,$ct){
+		  
+		var mtitle = $ct(".article h1").text().trim(); 
 		
 		$ct(".pages_print").remove();
 		
 		var pageState=$ct(".pages-date").text().trim();
 		
 		var parags = $ct(".pages_content p");
-		//
-		//var contentList=[];
-		//for(var pi=0;pi<parags.length;pi++){
-		//	var tp=parags.eq(pi);
-		//	contentList.push("　　"+tp.text());
-		//}
-		//
-		//var pageC = contentList.join('\r\n');
-		//var pageC=$ct(".pages_content").text();
+ 
 		var pageC = getContent(parags);
 		 
 		
-		var mDate=pageState.slice(0,10);
+		var mtime=pageState.slice(0,10);
 	    var mDT=pageState.slice(0,16);
 		var mSrc=pageState.slice(16).trim();
-
-		//var str = mtitle.trim()+"\r\n";
-		//str+=pageState.trim()+"\r\n";
-		//str+=pageC.trim()+"\r\n=============================================================\r\n"; 
-		
+ 
 		var str = "[标题]"+mtitle+"\r\n"; 
 		str+="[来源]"+mSrc.slice(4)+"\r\n";
 		str+="[地区]\r\n";	
@@ -272,46 +269,27 @@ exports.getScraper = function(){
 		str+="[关键字]\r\n"; 
 		str+="[栏目]\r\n";		
 		str+="[专有属性]\r\n";		
-		str+="[日期]"+mDate+"\r\n";
+		str+="[日期]"+mtime+"\r\n";
 		str+="[正文]\r\n"+pageC+"\r\n";		
-		
-		var pagePath=savePath +mDate+"/";
-		
-		try{		
-		 fs.statSync(pagePath);
-		}catch(err){
-			console.log("creating folder:"+pagePath);
-			fs.mkdirSync(pagePath);
-		}						
-
-		if(mtitle){
  
-			saveTxt(pagePath +mtitle+'.txt', str); 			
-		}else{
-			console.log('!!!!!!failed:'+subUrl);
-			
-		}
-		 
-		
+		var pInfo = { "aDate":mtime, "aTitle":mtitle, "aData":str };		
+		return pInfo;	
 		
 	}	
 	
 	 
-	function saveCenews(subUrl,site,savePath,$ct){
+	function saveCenews(subUrl,$ct){
 		
 		var dotIndex=subUrl.indexOf('./');
 		
 		if(dotIndex>-1){
-	 	
-			 
-			var mtitleOld = $ct(".hjbwap-xiangqing-h2").text();
-			var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
+	 	 
+			var mtitle = $ct(".hjbwap-xiangqing-h2").text(); 
 		 
 			var mtime=$ct(".public_func span").eq(0).text();
 			var mauthor=$ct(".public_func span").eq(1).text();					
 			var msrc=$ct(".public_func span").eq(2).text();
-
-			//var mct=$ct(".TRS_Editor").text();	
+ 
 			var parags = $ct(".TRS_Editor p");
 			var pageC = getContent(parags);
 			
@@ -324,32 +302,19 @@ exports.getScraper = function(){
 			str+="[地区]\r\n";	  
 			str+="[日期]"+mtime+"\r\n";
 			str+="[正文]\r\n"+pageC+"\r\n";
-
-			var pagePath='./data2/cenews/' +mtime+"/";
-			
-			try{		
-			 fs.statSync(pagePath);
-			}catch(err){
-				console.log("creating folder:"+pagePath);
-				fs.mkdirSync(pagePath);
-			}					
-			
-			if(mtitle){
-	 
-				saveTxt(pagePath +mtitle+'.txt', str); 			
-			}else{
-				console.log('!!!!!!failed:'+subUrl);
-				
-			}			
+  
+			var pInfo = { "aDate":mtime, "aTitle":mtitle, "aData":str };		
+			return pInfo;		
 			  
 		}else{
-			saveWx(subUrl,site,savePath,$ct);
+			return saveWx(subUrl,$ct);
 		}
 	}
 	
-	function saveWx(subUrl,site,savePath,$ct){
-		var mtitleOld = $ct(".rich_media_title").text().trim();
-		var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
+	function saveWx(subUrl,$ct){
+ 
+		
+		var mtitle = $ct(".rich_media_title").text().trim(); 
 						
 		var mtime=$ct("em.rich_media_meta.rich_media_meta_text").text().trim();
 	 
@@ -367,11 +332,8 @@ exports.getScraper = function(){
 			});
 			
 			var spRows = timeSpStr.split('\n');
-			
-			
-			
-			var timeStr = spRows[7].slice(37,47);
-			//var timeStr2=timeStr.replace('-','年').replace('-','月')+'日';
+			 
+			var timeStr = spRows[7].slice(37,47); 
 			
 			mtime=timeStr;
 		}
@@ -389,30 +351,14 @@ exports.getScraper = function(){
 		str+="[地区]\r\n";	  
 		str+="[日期]"+mtime+"\r\n";
 		str+="[正文]\r\n"+mct+"\r\n";
-
-		var pagePath=savePath +mtime+"/";
-
-		try{		
-		 fs.statSync(pagePath);
-		}catch(err){
-			console.log("creating folder:"+pagePath);
-			fs.mkdirSync(pagePath);
-		}					
-
-		if(mtitle){
-			saveTxt(pagePath +mtitle+'.txt', str); 		
-		}else{
-			console.log('!!!!!!failed:'+subUrl);
-			
-		}			
-		  
-		
+ 
+		var pInfo = { "aDate":mtime, "aTitle":mtitle, "aData":str };		
+		return pInfo;			
 	}
 	
 	
-	function saveChinanews(subUrl,site,savePath,$ct){
-		var mtitleOld = $ct('.content>h1').text().trim();		
-		var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
+	function saveChinanews(subUrl,$ct){
+		var mtitle = $ct('.content>h1').text().trim();		 
 		
 		var leftt = $ct(".left-t").text().trim();
 						
@@ -435,39 +381,24 @@ exports.getScraper = function(){
 		str+="[日期]"+mtime+"\r\n";
 		str+="[正文]\r\n"+mct+"\r\n";
 
-		var pagePath=savePath +mtime+"/";
-
-		try{		
-		 fs.statSync(pagePath);
-		}catch(err){
-			console.log("creating folder:"+pagePath);
-			fs.mkdirSync(pagePath);
-		}					
-
-		if(mtitle){
-			saveTxt(pagePath +mtitle+'.txt', str); 		
-		}else{
-			console.log('!!!!!!failed:'+subUrl);
-			
-		}			
-		  
+	 		
+		var pInfo = { "aDate":mtime, "aTitle":mtitle, "aData":str };		
+		return pInfo;		  
 		
 	}	
 	
 
-	function saveKuaixun(subUrl,site,savePath,$ct){
+	function saveKuaixun(subUrl,$ct){
 		
 		if(subUrl.indexOf('jwview')>-1){
-			saveKuaixun2(subUrl,site,savePath,$ct);
+			return saveKuaixun2(subUrl,$ct);
 		}else{
 			
-			var mtitleOld = $ct('.intal_tit>h2').text().trim();		
-			var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
+			var mtitle = $ct('.intal_tit>h2').text().trim();		 
 			
 			var leftt = $ct(".info").text().trim();
 							
-			var mtime = leftt.slice(0,10);
-			//var mtime=mtimeOld.replace('-','年').replace('-','月')+'日';
+			var mtime = leftt.slice(0,10); 
 		 
 		 
 			var msrcOld = $ct(".info span").eq(0).text().trim();
@@ -485,43 +416,26 @@ exports.getScraper = function(){
 			str+="[地区]\r\n";	  
 			str+="[日期]"+mtime+"\r\n";
 			str+="[正文]\r\n"+mct+"\r\n";
-
-			var pagePath=savePath +mtime+"/";
-
-			try{		
-			 fs.statSync(pagePath);
-			}catch(err){
-				console.log("creating folder:"+pagePath);
-				fs.mkdirSync(pagePath);
-			}					
-
-			if(mtitle){
-				saveTxt(pagePath +mtitle+'.txt', str); 		
-			}else{
-				console.log('!!!!!!failed:'+subUrl);
-				
-			}			
+ 
+			var pInfo = { "aDate":mtime, "aTitle":mtitle, "aData":str };		
+			return pInfo;			
 			  
 		}
 	}		
 	
-	function saveKuaixun2(subUrl,site,savePath,$ct){
+	function saveKuaixun2(subUrl,$ct){
 		
-		var mtitleOld = $ct('header h1').text().trim();		
-		var mtitle=mtitleOld.replace('"',"“").replace('"',"“").replace('|',' ');
+		var mtitle = $ct('header h1').text().trim(); 
 		
 		var leftt = $ct("header em").text().trim();						
 		var mtime = leftt.slice(0,10);
-		//var mtime=mtimeOld.replace('-','年').replace('-','月')+'日';
-	 
-	 
+ 
 		var msrc = $ct("header p").text().trim(); 
 		
 		var parags=$ct("#article p");	
 
 		var mct = getContent(parags);
-		 
-
+		  
 		var str = "[标题]"+mtitle+"\r\n";
 		str+="[作者]\r\n";
 		str+="[来源]"+msrc+"\r\n";
@@ -530,24 +444,13 @@ exports.getScraper = function(){
 		str+="[日期]"+mtime+"\r\n";
 		str+="[正文]\r\n"+mct+"\r\n";
 
-		var pagePath=savePath +mtime+"/";
-
-		try{		
-		 fs.statSync(pagePath);
-		}catch(err){
-			console.log("creating folder:"+pagePath);
-			fs.mkdirSync(pagePath);
-		}					
-
-		if(mtitle){
-			saveTxt(pagePath +mtitle+'.txt', str); 		
-		}else{
-			console.log('!!!!!!failed:'+subUrl);
-			
-		}			
-		
+	 
+		var pInfo = { "aDate":mtime, "aTitle":mtitle, "aData":str };		
+		return pInfo;		
 	}
 	
+	//================================================================================================================
+	//tools
 	//================================================================================================================
 	
 	function getContent(parags){
