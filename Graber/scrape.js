@@ -41,7 +41,7 @@ exports.getScraper = function () {
         scraper.startedRequestCount = 0;
         scraper.endedRequestCount = 0;
 
-        /*         */
+        /*    
         scraper.climb('mee', 'http://www.mee.gov.cn/ywdt/hjywnews/', '.cjcx_biaob', saveMee);
         scraper.climb('mee', 'http://www.mee.gov.cn/ywdt/dfnews/', '.cjcx_biaob', saveMee);
 
@@ -79,8 +79,7 @@ exports.getScraper = function () {
 
         scraper.climb('caijing', gurl, '#newsListContent .title a', readCaijing);
         }
-
-
+ 
 
         for (j = 1; j <= 5; j++) {
 
@@ -88,7 +87,23 @@ exports.getScraper = function () {
 
             scraper.climb('caijing', gurl, '#newsListContent .title a', readCaijing);
         }
+		
+     */
+		/*
+        for (j = 0; j < 6; j++) {
 
+			var pageNo="";
+			
+			if(j){
+				pageNo="_"+j;
+			}
+			
+            var gurl = "http://www.mee.gov.cn/ywgz/zrstbh/stwmsfcj/index" + pageNo + ".shtml";
+
+            scraper.climb('meeHis', gurl, '.mobile_list a', readMeeHis);
+        }	 
+		
+	 */
         scraper.log('Started grab..........................');
     }
 
@@ -492,6 +507,36 @@ exports.getScraper = function () {
         return pInfo;
     }
 
+    function readMeeHis(subUrl, $ct) {
+
+        var mtitle = $ct('.neiright_Title').text().trim();
+
+        var mdate = $ct(".xqLyPc.time").text().trim(); //2021-03-14 
+ 
+        var parags = $ct(".TRS_Editor>p");
+		
+		if(parags.length==0){
+			parags = $ct(".TRS_Editor>div");
+		}
+
+        var mct = getContent(parags);
+
+        var str = "[标题]" + mtitle + "\r\n";
+        str += "[作者]\r\n";
+        str += "[来源]生态环境部\r\n";
+        str += "[栏目]污染防治|综合\r\n";
+        str += "[专有属性]案例类|典型案例\r\n";		
+        str += "[地区]\r\n";
+        str += "[日期]" + mdate + "\r\n";
+        str += "[正文]\r\n" + mct + "\r\n";
+
+        var pInfo = {
+            "aDate": mdate,
+            "aTitle": mtitle,
+            "aData": str
+        };
+        return pInfo;
+    }
     //================================================================================================================
     //tools
     //================================================================================================================
