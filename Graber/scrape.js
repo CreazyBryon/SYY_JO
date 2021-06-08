@@ -11,6 +11,7 @@ add caijing
 var request = require('request');
 var cheerio = require('cheerio');
 var fs = require('fs');
+var iconvlite = require('iconv-lite');
 
 exports.getScraper = function () {
 
@@ -41,7 +42,7 @@ exports.getScraper = function () {
         scraper.startedRequestCount = 0;
         scraper.endedRequestCount = 0;
 
-        /*    
+        /*    */
         scraper.climb('mee', 'http://www.mee.gov.cn/ywdt/hjywnews/', '.cjcx_biaob', saveMee);
         scraper.climb('mee', 'http://www.mee.gov.cn/ywdt/dfnews/', '.cjcx_biaob', saveMee);
 
@@ -51,44 +52,52 @@ exports.getScraper = function () {
         scraper.climb('cenews', 'https://www.cenews.com.cn/environment/zlfb/', '.list_txt li a', saveCenews);
 
         scraper.climb('cenews', 'https://www.cenews.com.cn/news/', '#moreli .cjlisttil a', saveCenews);
-        scraper.climb('cenews', 'https://www.cenews.com.cn/news/index_1445_1.html', '.cjlisttil a', saveCenews, 'https://www.cenews.com.cn/news/');
+        scraper.climb('cenews', 'https://www.cenews.com.cn/news/index_1445_1.html', '.cjlisttil a', saveCenews);
 
-        scraper.climb('gov', 'http://www.gov.cn/xinwen/lianbo/difang.htm', '.list.list_1.list_2 a', saveGOV, 'http://www.gov.cn');
+        scraper.climb('gov', 'http://www.gov.cn/xinwen/lianbo/difang.htm', '.list.list_1.list_2 a', saveGOV);
 
-        for (i = 1; i <= 15; i++) {
-        var gurl = "http://sousuo.gov.cn/column/30611/" + i + ".htm";
-        //scraper.climb_gov(gurl);
-        scraper.climb('gov', gurl, '.list.list_1.list_2 a', saveGOV, 'http://www.gov.cn');
+        for (i = 0; i <= 2; i++) {
+			var gurl = "http://sousuo.gov.cn/column/30611/" + i + ".htm";
+			//scraper.climb_gov(gurl);
+			scraper.climb('gov', gurl, '.list.list_1.list_2 a', saveGOV);
         }
 
-        scraper.climb('chinanews', 'http://www.chinanews.com/cj/gd.shtml', '.dd_bt a', saveChinanews, 'http://www.chinanews.com/');
+        scraper.climb('chinanews', 'http://www.chinanews.com/cj/gd.shtml', '.dd_bt a', saveChinanews);
 
         scraper.climb('kuaixun', 'https://kuaixun.stcn.com/', '#news_list2 li a', saveKuaixun);
 
         //https://kuaixun.stcn.com/index_17.html
-        for (j = 1; j <= 19; j++) {
-
-        var gurl = "https://kuaixun.stcn.com/index_" + j + ".html";
-        //scraper.climb_gov(gurl);
-        scraper.climb('kuaixun', gurl, '#news_list2 li a', saveKuaixun, 'https://kuaixun.stcn.com/');
+        for (j = 0; j <= 14; j++) {
+			var pageNo="";
+			
+			if(j){
+				pageNo="_"+j;
+			}
+			var gurl = "https://kuaixun.stcn.com/index" + pageNo + ".html";
+			//scraper.climb_gov(gurl);
+			setTimeout(() => {
+				scraper.climb('kuaixun', gurl, '#news_list2 li a', saveKuaixun);
+			}, j*2000);
         }
 
-        for (j = 1; j <= 5; j++) {
+        for (j = 1; j <= 15; j++) {
 
-        var gurl = "http://finance.eastmoney.com/a/cgnjj_" + j + ".html";
-
-        scraper.climb('caijing', gurl, '#newsListContent .title a', readCaijing);
+			var gurl = "http://finance.eastmoney.com/a/cgnjj_" + j + ".html";
+			setTimeout(() => {
+				scraper.climb('caijing_guonei', gurl, '#newsListContent .title a', readCaijing);
+			}, j*2000);
         }
  
 
-        for (j = 1; j <= 5; j++) {
+        for (j = 1; j <= 6; j++) {
 
             var gurl = "http://finance.eastmoney.com/a/cgjjj_" + j + ".html";
-
-            scraper.climb('caijing', gurl, '#newsListContent .title a', readCaijing);
+			setTimeout(() => {
+				scraper.climb('caijing_guoji', gurl, '#newsListContent .title a', readCaijing);
+			}, j*2000);
         }
 		
-     */
+     
 		/*
         for (j = 0; j < 6; j++) {
 
@@ -104,10 +113,18 @@ exports.getScraper = function () {
         }	 
 		
 	 */
+
+        for (j = 1; j <= 1; j++) {
+ 
+            var gurl = "https://huanbao.bjx.com.cn/hot/hot_12960_p" + j + ".shtml";
+
+            scraper.climb('bjx_tzh', gurl, '.p_news a', readBjx, 'gb2312');
+        }	 
+	 
         scraper.log('Started grab..........................');
     }
 
-    scraper.climb = function (site, mainUrl, listFilter, readCB, rootUrl) {
+    scraper.climb = function (site, mainUrl, listFilter, readCB, encoding) {
 
         var tempPath = './data2/' + site + '/';
         try {
@@ -119,7 +136,7 @@ exports.getScraper = function () {
 
         scraper.startedRequestCount++;
 
-        scraper.grab(mainUrl, function ($1) {
+        scraper.grab(mainUrl, encoding, function ($1) {
 
             var mytl = $1("title").text();
 
@@ -154,12 +171,13 @@ exports.getScraper = function () {
                     subUrl = murl.href;
                 }
 
-                scraper.grab(subUrl, function ($2) {
+
+                scraper.grab(subUrl, encoding, function ($2) {
                     var pageInfo = 0;
                     var tt = "";
 
                     try {
-                        tt = $1("title").text();
+                        tt = $2("title").text();
                         pageInfo = readCB(href, $2);
                     } catch (err) {
                         scraper.log("Sub page failed, url=" + subUrl + " ; title=" + tt);
@@ -177,7 +195,7 @@ exports.getScraper = function () {
                             fs.mkdirSync(datePath);
                         }
 
-                        var validT = (pageInfo.aTitle.replace(/[ &\/\\#,+()$~%.'":*?<>{}]/g, ""));
+                        var validT = (pageInfo.aTitle.replace(/[ &\/\\#,+()$~%.'":*?<>{}|]/g, ""));
 
                         var fileP = datePath + validT + '.txt'
 
@@ -188,6 +206,7 @@ exports.getScraper = function () {
                     }
 
                 });
+				
             });
         });
     }
@@ -537,6 +556,56 @@ exports.getScraper = function () {
         };
         return pInfo;
     }
+	
+    function readBjx(subUrl, $ct) {
+		//scraper.log(subUrl);
+		//scraper.log("title:"+$ct('title').text());		
+		//scraper.log("body:"+$ct('body').html());			
+		//scraper.log("all:"+$ct.html());
+		
+        var mtitle = $ct('.list_detail h1').text().trim();
+		
+		if(!mtitle){
+			mtitle = $ct('.hdm_left_content h1').text().trim();
+		}
+		
+		var lcopy=$ct(".list_copy b");
+		
+		var msrc = lcopy.eq(0).text().trim().slice(3);
+		
+        var mdateStr = lcopy.eq(1).text().trim(); //2021/6/4 
+		var mdate = scraper.getFormatDate(mdateStr);
+ 
+        var parags = $ct(".list_detail p");
+		
+		if(!parags || parags.length == 0){
+			parags = $ct(".hdm_left_content p");
+		}
+	 
+        var mct = getContent(parags);
+		var mhIndex = mct.indexOf(':');
+		
+		if(mhIndex>0){
+			mct = "　　" + mct.slice(mhIndex+1);
+		}
+		
+
+        var str = "[标题]" + mtitle + "\r\n";
+        str += "[作者]\r\n";
+        str += "[来源]"+msrc+"\r\n";
+        str += "[栏目]碳达峰碳中和|综合\r\n";
+        str += "[专有属性]\r\n";		
+        str += "[地区]\r\n";
+        str += "[日期]" + mdate + "\r\n";
+        str += "[正文]\r\n" + mct + "\r\n";
+
+        var pInfo = {
+            "aDate": mdate,
+            "aTitle": mtitle,
+            "aData": str
+        };
+        return pInfo;
+    }	
     //================================================================================================================
     //tools
     //================================================================================================================
@@ -583,7 +652,7 @@ exports.getScraper = function () {
         scraper.endedRequestCount++;
 
         if (scraper.endedRequestCount == scraper.startedRequestCount) {
-            scraper.log("all finished======================================");
+            scraper.log("all finished======================================"+scraper.endedRequestCount);
 
             var objStr = JSON.stringify(scraper.histories);
 
@@ -616,13 +685,29 @@ exports.getScraper = function () {
 
     }
 
-    scraper.grab = function (url, cb) {
+    scraper.grab = function (url, encoding, cb) {
+		
+		var reqdata = {
+				headers: { 
+				  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36 Edg/90.0.818.66'
+				  //'Content-Type': 'text/html; charset=UTF-8'
+				},
+				uri: url
+			  };
+		
+		if(encoding){
+			reqdata.encoding=null;
+		}
 
-        request(url, function (error, response, html) {
+        request(reqdata, function (error, response, html) {
 
             finishRequest();
 
             if (!error) {
+				
+				if(encoding){
+					html = iconvlite.decode(html, encoding).toString();
+				}				
                 // Next, we'll utilize the cheerio library on the returned html which will essentially give us jQuery functionality
                 var $ = cheerio.load(html, {
                     decodeEntities: false
@@ -677,7 +762,17 @@ exports.getScraper = function () {
         return currentDate;
     }
 	
-	
+    scraper.getFormatDate = function (dateStr) {
+        var nowTime = new Date(dateStr);
+        var month = nowTime.getMonth() + 1; //一定要+1,表示月份的参数介于 0 到 11 之间。也就是说，如果希望把月设置为 8 月，则参数应该是 7。
+        var date = nowTime.getDate();
+        var seperator1 = "-"; //设置成自己想要的年月日格式：年-月-日
+ 
+        var currentDate = nowTime.getFullYear() + seperator1 + scraper.padLeft(month,2) + seperator1 + scraper.padLeft(date,2);
+
+        return currentDate;
+    }	
+	 
 	scraper.padLeft = function(src, fullLength){
 		
 		var str = src+"";
