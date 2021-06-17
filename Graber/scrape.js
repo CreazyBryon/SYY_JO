@@ -1,9 +1,8 @@
 /**************************************************************
-Build:3.2
+Build:3.3
 
-2021-04-19
+2021-06-17
 
-add caijing
 
 
  ***************************************************************/
@@ -42,10 +41,11 @@ exports.getScraper = function () {
         scraper.startedRequestCount = 0;
         scraper.endedRequestCount = 0;
 
-        /*    */
-        scraper.climb('mee', 'http://www.mee.gov.cn/ywdt/hjywnews/', '.cjcx_biaob', saveMee);
-        scraper.climb('mee', 'http://www.mee.gov.cn/ywdt/dfnews/', '.cjcx_biaob', saveMee);
 
+        scraper.climb('mee', 'http://www.mee.gov.cn/ywdt/hjywnews/', '.cjcx_biaob', saveMee);
+		
+        scraper.climb('mee', 'http://www.mee.gov.cn/ywdt/dfnews/', '.cjcx_biaob', saveMee);
+            
         scraper.climb('cenews', 'https://www.cenews.com.cn/opinion/hjsp/', '.list_txt li a', saveCenews);
         scraper.climb('cenews', 'https://www.cenews.com.cn/pollution_ctr/xydt/', '.list_txt li a', saveCenews);
         scraper.climb('cenews', 'https://www.cenews.com.cn/leader/talk/', '.list_txt a', saveCenews);
@@ -56,8 +56,8 @@ exports.getScraper = function () {
 
         scraper.climb('gov', 'http://www.gov.cn/xinwen/lianbo/difang.htm', '.list.list_1.list_2 a', saveGOV);
 
-        for (i = 0; i <= 2; i++) {
-			var gurl = "http://sousuo.gov.cn/column/30611/" + i + ".htm";
+        for (let i = 0; i <= 2; i++) {
+			let gurl = "http://sousuo.gov.cn/column/30611/" + i + ".htm";
 			//scraper.climb_gov(gurl);
 			scraper.climb('gov', gurl, '.list.list_1.list_2 a', saveGOV);
         }
@@ -67,60 +67,56 @@ exports.getScraper = function () {
         scraper.climb('kuaixun', 'https://kuaixun.stcn.com/', '#news_list2 li a', saveKuaixun);
 
         //https://kuaixun.stcn.com/index_17.html
-        for (j = 0; j <= 14; j++) {
+        for (let j1 = 0; j1 <= 14; j1++) {
 			var pageNo="";
 			
-			if(j){
-				pageNo="_"+j;
+			if(j1){
+				pageNo="_"+j1;
 			}
-			var gurl = "https://kuaixun.stcn.com/index" + pageNo + ".html";
+			let gurl = "https://kuaixun.stcn.com/index" + pageNo + ".html";
 			//scraper.climb_gov(gurl);
 			setTimeout(() => {
 				scraper.climb('kuaixun', gurl, '#news_list2 li a', saveKuaixun);
-			}, j*2000);
+			}, j1*1000);
         }
 
-        for (j = 1; j <= 15; j++) {
+        for (let j2 = 1; j2 <= 15; j2++) {
 
-			var gurl = "http://finance.eastmoney.com/a/cgnjj_" + j + ".html";
+			let gurl = "http://finance.eastmoney.com/a/cgnjj_" + j2 + ".html";
 			setTimeout(() => {
 				scraper.climb('caijing_guonei', gurl, '#newsListContent .title a', readCaijing);
-			}, j*2000);
+			}, j2*1000);
         }
  
 
-        for (j = 1; j <= 6; j++) {
+        for (let j3 = 1; j3 <= 6; j3++) {
 
-            var gurl = "http://finance.eastmoney.com/a/cgjjj_" + j + ".html";
+            let gurl = "http://finance.eastmoney.com/a/cgjjj_" + j3 + ".html";
 			setTimeout(() => {
 				scraper.climb('caijing_guoji', gurl, '#newsListContent .title a', readCaijing);
-			}, j*2000);
+			}, j3*1000);
         }
 		
      
-		/*
-        for (j = 0; j < 6; j++) {
-
-			var pageNo="";
-			
-			if(j){
-				pageNo="_"+j;
-			}
-			
-            var gurl = "http://www.mee.gov.cn/ywgz/zrstbh/stwmsfcj/index" + pageNo + ".shtml";
-
-            scraper.climb('meeHis', gurl, '.mobile_list a', readMeeHis);
-        }	 
-		
-	 */
-
-        for (j = 1; j <= 1; j++) {
  
-            var gurl = "https://huanbao.bjx.com.cn/hot/hot_12960_p" + j + ".shtml";
+        //for (j = 0; j < 6; j++) {
+		//	var pageNo="";		
+		//	if(j){
+		//		pageNo="_"+j;
+		//	}		
+        //    var gurl = "http://www.mee.gov.cn/ywgz/zrstbh/stwmsfcj/index" + pageNo + ".shtml";
+        //    scraper.climb('meeHis', gurl, '.mobile_list a', readMeeHis);
+        //}	 
+ 	
+
+
+        for (let j4 = 1; j4 <= 1; j4++) {
+ 
+            let gurl = "https://huanbao.bjx.com.cn/hot/hot_12960_p" + j4 + ".shtml";
 
             scraper.climb('bjx_tzh', gurl, '.p_news a', readBjx, 'gb2312');
         }	 
-	 
+	/**/
         scraper.log('Started grab..........................');
     }
 
@@ -244,21 +240,15 @@ exports.getScraper = function () {
         }
 
         var mct = "";
-
-        var mctNode = $2(".neiright_JPZ_GK_CP");
-
-        if (!mctNode) {
-            mct = $2(".content_body_box").text();
-
-        } else {
-            var parags = $2(".neiright_JPZ_GK_CP p");
-            mct = getContent(parags);
-
-            if (!mct) {
-                parags = $2(".neiright_JPZ_GK_CP div");
-                mct = getContent(parags);
-            }
-        }
+		
+        var mctNode = $2(".TRS_Editor");		
+		
+		if(!mctNode){
+			mct = getContent2($2(".content_body_box").text());
+			 
+		}else{ 
+			mct = getContent2(mctNode.text());						
+		}
 
         var str = "[标题]" + mtitle + "\r\n";
         str += "[来源]" + msrc + "\r\n";
@@ -647,6 +637,62 @@ exports.getScraper = function () {
         return pageC;
 
     }
+	
+    function getContent2(fullStr) {
+
+        if (!fullStr) {
+            return null;
+        }
+		
+		var parags = fullStr.split('\n');
+
+        var contentList = [];
+		
+        for (var pi = 0; pi < parags.length; pi++) {
+            var tp = parags[pi];
+            var paraText = tp;
+			var trimText = tp.trim();
+			
+			if(!trimText){
+				continue;
+			}
+			
+
+            if (paraText.indexOf("　　") != 0) {
+                paraText = "　　" + paraText;
+            }
+			
+			if (paraText.indexOf('更多内容，点击阅读') > -1) {
+				paraText = paraText.replace('更多内容，点击阅读','');
+			}			
+			
+			//last one
+            if (pi == parags.length - 1) {
+                if (paraText.endsWith('）')) {
+                    var leftCIndex = paraText.indexOf('（');
+
+                    if (leftCIndex != -1) {
+                        paraText = paraText.slice(0, leftCIndex);
+                    }
+                }
+
+                if (paraText.indexOf('不得转载') > -1) {
+                    paraText = '';
+                }
+				
+				if(paraText.trim().indexOf('记者') == 0){
+					paraText = '';
+				}
+            }
+
+            contentList.push(paraText);
+        }
+
+        var pageC = contentList.join('\r\n');
+
+        return pageC;
+
+    }	
 
     function finishRequest() {
         scraper.endedRequestCount++;
