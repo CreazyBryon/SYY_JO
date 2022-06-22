@@ -79,7 +79,7 @@ exports.getScraper = function () {
 				scraper.climb('kuaixun', gurl, '#news_list2 li a', saveKuaixun);
 			}, j1*1000);
         }
-
+/**/
         for (let j2 = 1; j2 <= 15; j2++) {
 
 			let gurl = "http://finance.eastmoney.com/a/cgnjj_" + j2 + ".html";
@@ -489,12 +489,13 @@ exports.getScraper = function () {
 
     function readCaijing(subUrl, $ct) {
 
-        var mtitle = $ct('.newsContent h1').text().trim();
-
-        var mtime = $ct(".newsContent .Info .time-source .time").text().trim(); //2021年04月16日 15:17
+        var mtitle = $ct('.topbox .title').text().trim();
+		var mtop = $ct(".topbox .tipbox .infos .item");
+		
+        var mtime = mtop.eq(0).text().trim(); //2021年04月16日 15:17
         var mdate = mtime.slice(0, 10).replace('年', '-').replace('月', '-'); ;
 
-        var msrc = $ct(".newsContent .Info .time-source .source").text().trim().slice(4);
+        var msrc = mtop.eq(1).text().trim().slice(4);
 
         var parags = $ct("#ContentBody p:not([class])");
 
