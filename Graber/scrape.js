@@ -36,7 +36,7 @@ exports.getScraper = function () {
     scraper.run = function () {
         scraper.log('Start to grab..........................');
 
-        scraper.loadHis();
+        //scraper.loadHis();
 
         scraper.startedRequestCount = 0;
         scraper.endedRequestCount = 0;
@@ -44,15 +44,7 @@ exports.getScraper = function () {
 
         scraper.climb('mee', 'http://www.mee.gov.cn/ywdt/hjywnews/', '.cjcx_biaob', saveMee);
 		
-        scraper.climb('mee', 'http://www.mee.gov.cn/ywdt/dfnews/', '.cjcx_biaob', saveMee);
-            
-        scraper.climb('cenews', 'https://www.cenews.com.cn/opinion/hjsp/', '.list_txt li a', saveCenews);
-        scraper.climb('cenews', 'https://www.cenews.com.cn/pollution_ctr/xydt/', '.list_txt li a', saveCenews);
-        scraper.climb('cenews', 'https://www.cenews.com.cn/leader/talk/', '.list_txt a', saveCenews);
-        scraper.climb('cenews', 'https://www.cenews.com.cn/environment/zlfb/', '.list_txt li a', saveCenews);
-
-        scraper.climb('cenews', 'https://www.cenews.com.cn/news/', '#moreli .cjlisttil a', saveCenews);
-        scraper.climb('cenews', 'https://www.cenews.com.cn/news/index_1445_1.html', '.cjlisttil a', saveCenews);
+        scraper.climb('mee', 'http://www.mee.gov.cn/ywdt/dfnews/', '.cjcx_biaob', saveMee); 
 
         scraper.climb('gov', 'http://www.gov.cn/xinwen/lianbo/difang.htm', '.list.list_1.list_2 a', saveGOV);
 
@@ -305,91 +297,7 @@ exports.getScraper = function () {
         return pInfo;
 
     }
-
-    function saveCenews(subUrl, $ct) {
-
-        var dotIndex = subUrl.indexOf('./');
-
-        if (dotIndex > -1) {
-
-            var mtitle = $ct(".hjbwap-xiangqing-h2").text();
-
-            var mtime = $ct(".public_func span").eq(0).text();
-            var mauthor = $ct(".public_func span").eq(1).text();
-            var msrc = $ct(".public_func span").eq(2).text();
-
-            var parags = $ct(".TRS_Editor p");
-            var pageC = getContent(parags);
-
-            mtime = mtime.replace('年', '-').replace('月', '-').replace('日', '');
-
-            var str = "[标题]" + mtitle + "\r\n";
-            str += "[作者]" + mauthor.slice(3) + "\r\n";
-            str += "[来源]" + msrc.slice(3) + "\r\n";
-            str += "[栏目]\r\n";
-            str += "[地区]\r\n";
-            str += "[日期]" + mtime + "\r\n";
-            str += "[正文]\r\n" + pageC + "\r\n";
-
-            var pInfo = {
-                "aDate": mtime,
-                "aTitle": mtitle,
-                "aData": str
-            };
-            return pInfo;
-
-        } else {
-            return saveWx(subUrl, $ct);
-        }
-    }
-
-    function saveWx(subUrl, $ct) {
-
-        var mtitle = $ct(".rich_media_title").text().trim();
-
-        var mtime = $ct("em.rich_media_meta.rich_media_meta_text").text().trim();
-
-        if (!mtime) {
-
-            var timeSpStr = '';
-            var timeSp = $ct('script').filter(function (i, el) {
-                var spText = $ct(el).html();
-
-                if (spText.indexOf('publish_time') > -1) {
-                    timeSpStr = spText;
-                    return true;
-                }
-                return false;
-            });
-
-            var spRows = timeSpStr.split('\n');
-
-            var timeStr = spRows[7].slice(37, 47);
-
-            mtime = timeStr;
-        }
-
-        var mauthor = $ct("span.rich_media_meta.rich_media_meta_text").text().trim();
-        var msrc = $ct(".rich_media_meta.rich_media_meta_nickname a").text().trim();
-
-        var mct = $ct(".rich_media_content").text().trim();
-
-        var str = "[标题]" + mtitle + "\r\n";
-        str += "[作者]" + mauthor + "\r\n";
-        str += "[来源]" + msrc + "\r\n";
-        str += "[栏目]\r\n";
-        str += "[地区]\r\n";
-        str += "[日期]" + mtime + "\r\n";
-        str += "[正文]\r\n" + mct + "\r\n";
-
-        var pInfo = {
-            "aDate": mtime,
-            "aTitle": mtitle,
-            "aData": str
-        };
-        return pInfo;
-    }
-
+ 
     function saveChinanews(subUrl, $ct) {
         var mtitle = $ct('.content>h1').text().trim();
 
@@ -701,16 +609,16 @@ exports.getScraper = function () {
         if (scraper.endedRequestCount == scraper.startedRequestCount) {
             scraper.log("all finished======================================"+scraper.endedRequestCount);
 
-            var objStr = JSON.stringify(scraper.histories);
+            //var objStr = JSON.stringify(scraper.histories);
 
-            fs.writeFile("histories1.json", objStr, function (error) {
+            //fs.writeFile("histories1.json", objStr, function (error) {
 
-                if (error) {
-                    scraper.log(error + " , " + objStr);
-                } else {
-                    scraper.log('writed to histories.json');
-                }
-            });
+            //    if (error) {
+            //        scraper.log(error + " , " + objStr);
+            //    } else {
+            //        scraper.log('writed to histories.json');
+            //    }
+            //});
         } else {
             scraper.log("started:" + scraper.startedRequestCount + "; finished:" + scraper.endedRequestCount);
 
